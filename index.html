@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="GI wRVU"/>
+<title>GI wRVU Tracker</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f1f5f9;min-height:100vh;padding-bottom:env(safe-area-inset-bottom);}
+  input,select,button{font-family:inherit;-webkit-appearance:none;appearance:none;}
+  select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px!important;}
+  .wrap{max-width:600px;margin:0 auto;padding:12px 12px 80px;}
+  .header{background:linear-gradient(135deg,#1e3a5f,#2563eb);border-radius:16px;padding:18px 18px 16px;margin-bottom:14px;color:white;}
+  .header h1{margin:0 0 2px;font-size:20px;font-weight:800;}
+  .header p{margin:0 0 12px;opacity:.8;font-size:12px;}
+  .stat-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .stat{background:rgba(255,255,255,.18);border-radius:10px;padding:7px 12px;text-align:center;flex:1;min-width:60px;}
+  .stat-v{font-size:18px;font-weight:800;line-height:1.1;}
+  .stat-l{font-size:9px;opacity:.85;margin-top:1px;}
+  .hdr-btns{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+  .hdr-btn{padding:5px 10px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);border-radius:6px;color:white;font-size:12px;font-weight:600;cursor:pointer;}
+  .hdr-btn.danger{background:rgba(239,68,68,.3);border-color:rgba(239,68,68,.5);}
+  .save-badge{font-size:11px;background:rgba(255,255,255,.2);padding:3px 8px;border-radius:10px;float:right;}
+  /* Tabs */
+  .tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+  .tab{padding:9px 14px;border:none;border-radius:9px;cursor:pointer;font-weight:500;font-size:13px;background:white;color:#4b5563;box-shadow:0 1px 3px rgba(0,0,0,.1);}
+  .tab.active{background:#1e3a5f;color:white;font-weight:700;}
+  /* Cards */
+  .card{background:white;border-radius:12px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:12px;}
+  .card h3{margin:0 0 14px;font-size:15px;color:#1e3a5f;}
+  /* Form */
+  label.lbl{display:block;font-size:11px;font-weight:700;color:#6b7280;margin-bottom:4px;text-transform:uppercase;}
+  .input{width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:9px;font-size:14px;background:white;color:#111;outline:none;}
+  .input:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+  .span2{grid-column:span 2;}
+  /* Proc section */
+  .proc-section{border-radius:10px;overflow:hidden;margin-bottom:10px;border:1px solid #e5e7eb;}
+  .proc-section-head{padding:9px 12px;display:flex;justify-content:space-between;align-items:center;}
+  .proc-section-title{font-size:13px;font-weight:800;}
+  .proc-badge{margin-left:8px;border-radius:10px;padding:1px 8px;font-size:11px;color:white;font-weight:700;}
+  .add-btn{border:none;border-radius:6px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;color:white;}
+  .proc-body{padding:10px 12px 4px;}
+  .proc-empty{padding:10px 14px;color:#9ca3af;font-size:12px;font-style:italic;}
+  .proc-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+  .proc-select{flex:1;padding:7px 28px 7px 9px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;background:white;color:#111;outline:none;}
+  .proc-wrvu{font-weight:800;font-size:13px;min-width:44px;text-align:right;}
+  .rm-btn{background:none;border:none;color:#d1d5db;font-size:22px;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0;}
+  /* Group header */
+  .group-hdr{display:flex;align-items:center;gap:7px;padding:5px 0 6px;cursor:pointer;border:none;background:none;width:100%;text-align:left;font-size:12px;font-weight:700;color:#374151;}
+  .group-hdr .arrow{font-size:10px;color:#9ca3af;}
+  /* Summary bar */
+  .summary-bar{padding:10px 14px;background:#f0f9ff;border-radius:9px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-left:4px solid #2563eb;}
+  .summary-codes{font-size:12px;color:#1e40af;font-weight:600;}
+  .summary-wrvu{font-size:20px;font-weight:900;color:#1e3a5f;}
+  /* Save btn */
+  .save-case-btn{width:100%;padding:13px;background:#1e3a5f;color:white;border:none;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer;}
+  .save-case-btn:disabled{background:#94a3b8;cursor:not-allowed;}
+  .hint{font-size:11px;color:#9ca3af;text-align:center;margin:6px 0 0;}
+  /* Case log */
+  .case-card{background:white;border-radius:12px;padding:14px 15px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:10px;}
+  .case-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+  .case-name{font-weight:700;font-size:14px;}
+  .case-meta{color:#9ca3af;font-size:12px;margin-left:8px;}
+  .case-note{color:#6b7280;font-size:12px;margin-left:6px;}
+  .case-wrvu{font-weight:900;font-size:16px;color:#1e3a5f;}
+  .case-actions{display:flex;align-items:center;gap:6px;}
+  .icon-btn{background:none;border:none;cursor:pointer;font-size:15px;padding:2px 4px;opacity:.6;}
+  .delete-btn{background:#fee2e2;border:none;cursor:pointer;font-size:14px;padding:4px 7px;border-radius:7px;color:#dc2626;font-weight:700;}
+  .delete-btn:active{background:#fca5a5;}
+  .chip{display:inline-flex;align-items:center;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:600;margin:2px 3px 2px 0;}
+  .cat-row{margin-bottom:4px;}
+  .cat-label{font-size:10px;font-weight:700;margin-right:5px;text-transform:uppercase;}
+  /* Monthly */
+  .month-card{background:white;border-radius:12px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden;}
+  .month-head{padding:13px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;}
+  .month-name{font-weight:800;font-size:15px;}
+  .month-sub{color:#9ca3af;font-size:12px;margin-left:8px;}
+  .month-wrvu{font-size:20px;font-weight:900;color:#1e3a5f;margin-right:8px;}
+  .month-body{border-top:1px solid #f1f5f9;}
+  .cat-chips-row{display:flex;gap:8px;padding:10px 16px;background:#f8fafc;flex-wrap:wrap;}
+  .cat-chip{padding:7px 12px;border-radius:8px;min-width:80px;}
+  .cat-chip-name{font-size:10px;font-weight:700;}
+  .cat-chip-val{font-size:15px;font-weight:800;line-height:1.2;}
+  .cat-chip-cnt{font-size:10px;color:#9ca3af;}
+  .month-case{padding:10px 16px;border-bottom:1px solid #f8fafc;}
+  .month-footer{background:#eff6ff;padding:10px 16px;display:flex;justify-content:space-between;font-weight:700;color:#1e40af;font-size:13px;}
+  /* CPT ref */
+  .ref-section-hdr{border-radius:9px;padding:9px 14px;margin-bottom:8px;margin-top:12px;}
+  .ref-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .ref-th{padding:7px 10px;text-align:left;font-size:11px;font-weight:700;color:#6b7280;border-bottom:1px solid #e5e7eb;background:#f8fafc;}
+  .ref-td{padding:8px 10px;border-bottom:1px solid #f1f5f9;}
+  .ref-code{font-family:monospace;font-weight:700;}
+  /* Modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;display:flex;align-items:center;justify-content:center;padding:16px;}
+  .modal{background:white;border-radius:16px;padding:22px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;}
+  .modal h3{margin:0 0 16px;color:#1e3a5f;}
+  .modal-btns{display:flex;gap:10px;margin-top:16px;}
+  .modal-cancel{flex:1;padding:11px;background:#f3f4f6;border:none;border-radius:9px;font-weight:600;cursor:pointer;font-size:14px;}
+  .modal-confirm{flex:1;padding:11px;background:#1e3a5f;color:white;border:none;border-radius:9px;font-weight:700;cursor:pointer;font-size:14px;}
+  .modal-danger{background:#ef4444;}
+  /* Photo */
+  .photo-area{text-align:center;padding:24px 16px;}
+  .photo-area .icon{font-size:52px;margin-bottom:8px;}
+  .photo-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px;}
+  .photo-btn{padding:12px 20px;border-radius:9px;font-weight:600;font-size:14px;cursor:pointer;border:1px solid #e5e7eb;background:#f3f4f6;}
+  .photo-btn.primary{background:#1e3a5f;color:white;border:none;}
+  .ai-msg{margin-top:14px;padding:10px 16px;border-radius:9px;font-size:14px;font-weight:500;}
+  .ai-ok{background:#ecfdf5;color:#065f46;}
+  .ai-err{background:#fef2f2;color:#991b1b;}
+  /* Pending */
+  .pending-card{border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin-bottom:12px;}
+  .pending-card.dim{opacity:.4;}
+  .pending-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .confirm-btn{width:100%;padding:13px;background:#059669;color:white;border:none;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer;margin-top:8px;}
+  /* Disclaimer */
+  .disclaimer{background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:11px 14px;font-size:12px;color:#78350f;line-height:1.6;margin-top:12px;}
+  /* Empty state */
+  .empty{text-align:center;padding:40px 20px;color:#9ca3af;background:white;border-radius:12px;}
+  .empty .icon{font-size:44px;}
+  /* iOS bottom safe area */
+  .tabs{padding-bottom:2px;}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+const CPT_DATA = [
+  {cat:"EGD",        code:"43235",desc:"EGD – Diagnostic",                wrvu:2.50},
+  {cat:"EGD",        code:"43239",desc:"EGD – w/ Biopsy",                 wrvu:2.92},
+  {cat:"EGD",        code:"43249",desc:"EGD – Balloon Dilation (TTS)",     wrvu:3.25},
+  {cat:"EGD",        code:"43245",desc:"EGD – Savary/Bougie Dilation",     wrvu:3.12},
+  {cat:"EGD",        code:"43251",desc:"EGD – w/ Polypectomy (snare)",     wrvu:3.50},
+  {cat:"EGD",        code:"43270",desc:"EGD – w/ Ablation (APC/RFA)",      wrvu:4.00},
+  {cat:"EGD",        code:"43247",desc:"EGD – Foreign Body Removal",       wrvu:3.25},
+  {cat:"EGD",        code:"43255",desc:"EGD – w/ Hemostasis",              wrvu:3.50},
+  {cat:"EGD",        code:"43246",desc:"PEG Tube Placement",               wrvu:5.00},
+  {cat:"Colonoscopy",code:"45378",desc:"Colonoscopy – Diagnostic",         wrvu:3.36},
+  {cat:"Colonoscopy",code:"45380",desc:"Colonoscopy – w/ Biopsy",          wrvu:4.43},
+  {cat:"Colonoscopy",code:"45385",desc:"Colonoscopy – w/ Polypectomy",     wrvu:4.57},
+  {cat:"Colonoscopy",code:"45388",desc:"Colonoscopy – w/ Ablation (APC)", wrvu:4.75},
+  {cat:"Colonoscopy",code:"45390",desc:"Colonoscopy – w/ EMR",             wrvu:5.50},
+  {cat:"Colonoscopy",code:"45381",desc:"Colonoscopy – Submucosal Inj",    wrvu:4.00},
+  {cat:"Colonoscopy",code:"G0105",desc:"Screening Colo – High Risk",       wrvu:3.36},
+  {cat:"Colonoscopy",code:"G0121",desc:"Screening Colo – Avg Risk",        wrvu:3.36},
+  {cat:"ERCP",       code:"43260",desc:"ERCP – Diagnostic",                wrvu:5.50},
+  {cat:"ERCP",       code:"43262",desc:"ERCP – w/ Sphincterotomy",         wrvu:7.80},
+  {cat:"ERCP",       code:"43264",desc:"ERCP – w/ Stone Removal",          wrvu:8.50},
+  {cat:"ERCP",       code:"43274",desc:"ERCP – w/ Stent Placement",        wrvu:9.25},
+  {cat:"ERCP",       code:"43275",desc:"ERCP – Stent Removal/Exchange",    wrvu:7.50},
+  {cat:"ERCP",       code:"43273",desc:"ERCP – Cholangioscopy (add-on)",   wrvu:3.01},
+  {cat:"IP Consult", code:"99252",desc:"IP Consult – Level 2 (Low)",       wrvu:1.50},
+  {cat:"IP Consult", code:"99253",desc:"IP Consult – Level 3 (Moderate)",  wrvu:2.79},
+  {cat:"IP Consult", code:"99254",desc:"IP Consult – Level 4 (Mod-High)",  wrvu:3.69},
+  {cat:"IP Consult", code:"99255",desc:"IP Consult – Level 5 (High)",      wrvu:4.53},
+  {cat:"OP Consult", code:"99242",desc:"OP Consult – Level 2 (Low)",       wrvu:1.30},
+  {cat:"OP Consult", code:"99243",desc:"OP Consult – Level 3 (Moderate)",  wrvu:1.92},
+  {cat:"OP Consult", code:"99244",desc:"OP Consult – Level 4 (Mod-High)",  wrvu:3.02},
+  {cat:"OP Consult", code:"99245",desc:"OP Consult – Level 5 (High)",      wrvu:3.77},
+  {cat:"IP Follow-up",code:"99231",desc:"IP Follow-up – Level 1 (Low)",    wrvu:0.76},
+  {cat:"IP Follow-up",code:"99232",desc:"IP Follow-up – Level 2 (Moderate)",wrvu:1.39},
+  {cat:"IP Follow-up",code:"99233",desc:"IP Follow-up – Level 3 (High)",   wrvu:2.00},
+  {cat:"OP Follow-up",code:"99212",desc:"OP Follow-up – Level 2 (Low)",    wrvu:0.70},
+  {cat:"OP Follow-up",code:"99213",desc:"OP Follow-up – Level 3 (Moderate)",wrvu:1.30},
+  {cat:"OP Follow-up",code:"99214",desc:"OP Follow-up – Level 4 (Mod-High)",wrvu:1.92},
+  {cat:"OP Follow-up",code:"99215",desc:"OP Follow-up – Level 5 (High)",   wrvu:2.80},
+];
+
+const PROC_CATS = ["EGD","Colonoscopy","ERCP"];
+const EM_CATS   = ["IP Consult","OP Consult","IP Follow-up","OP Follow-up"];
+const ALL_CATS  = [...PROC_CATS,...EM_CATS];
+
+const CAT_COLOR = {
+  EGD:"#2563eb", Colonoscopy:"#059669", ERCP:"#d97706",
+  "IP Consult":"#7c3aed","OP Consult":"#9333ea",
+  "IP Follow-up":"#0891b2","OP Follow-up":"#0284c7"
+};
+const CAT_BG = {
+  EGD:"#eff6ff", Colonoscopy:"#ecfdf5", ERCP:"#fffbeb",
+  "IP Consult":"#f5f3ff","OP Consult":"#fdf4ff",
+  "IP Follow-up":"#ecfeff","OP Follow-up":"#e0f2fe"
+};
+const CAT_ICON = {
+  EGD:"🔭", Colonoscopy:"🩺", ERCP:"🔬",
+  "IP Consult":"🏥","OP Consult":"🏢",
+  "IP Follow-up":"📋","OP Follow-up":"📝"
+};
+
+const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const SK = "gi-wrvu-v4";
+
+// ─── STATE ──────────────────────────────────────────────────────────────────
+let state = {
+  tab: "log",
+  cases: [],
+  draft: newCase(),
+  editing: null,
+  pending: [],
+  aiMsg: "",
+  aiLoading: false,
+  expandedMonths: {},
+  showClear: false,
+  saveStatus: "",
+  showProcGroup: true,
+  showEMGroup: true,
+};
+
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2); }
+function monthKey(d){ const dt=new Date(d+"T12:00:00"); return `${dt.getFullYear()}-${String(dt.getMonth()).padStart(2,"0")}`; }
+function monthLabel(k){ const[y,m]=k.split("-"); return `${MONTHS[+m]} ${y}`; }
+
+function newCase(date){ return {id:uid(),date:date||todayStr(),patient:"",note:"",procs:[]}; }
+function caseWRVU(c){ return c.procs.reduce((s,p)=>s+(CPT_DATA.find(x=>x.code===p.code)?.wrvu||0),0); }
+function cptFor(code){ return CPT_DATA.find(x=>x.code===code); }
+
+// ─── STORAGE ────────────────────────────────────────────────────────────────
+function loadCases(){
+  try{
+    const raw=localStorage.getItem(SK);
+    if(raw){
+      const arr=JSON.parse(raw);
+      if(Array.isArray(arr)) return arr.map(migrate);
+    }
+    // migrate old key
+    const old=localStorage.getItem("gi-wrvu-cases-v2");
+    if(old){
+      const arr=JSON.parse(old);
+      if(Array.isArray(arr)) return arr.map(migrate);
+    }
+  }catch(e){}
+  return [];
+}
+function migrate(c){
+  return {...c, procs:(c.procs||[]).map(p=>{
+    if(p.cat) return p;
+    return {...p, cat: cptFor(p.code)?.cat||"EGD"};
+  })};
+}
+let saveTimer=null;
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  state.saveStatus="saving";
+  render();
+  saveTimer=setTimeout(()=>{
+    try{ localStorage.setItem(SK,JSON.stringify(state.cases)); state.saveStatus="saved"; }
+    catch(e){ state.saveStatus="error"; }
+    render();
+    setTimeout(()=>{ state.saveStatus=""; render(); },2000);
+  },600);
+}
+
+// ─── RENDER ENGINE ──────────────────────────────────────────────────────────
+function render(){
+  document.getElementById("app").innerHTML = buildApp();
+  attachEvents();
+}
+
+function buildApp(){
+  const {cases,tab,draft,editing,pending,aiMsg,aiLoading,showClear,saveStatus,showProcGroup,showEMGroup} = state;
+  const allProcs = cases.flatMap(c=>c.procs.map(p=>({...p,...(cptFor(p.code)||{wrvu:0,cat:"?"})})));
+  const grandTotal = allProcs.reduce((s,p)=>s+p.wrvu,0);
+  const byMonth={};
+  cases.forEach(c=>{const k=monthKey(c.date);if(!byMonth[k])byMonth[k]=[];byMonth[k].push(c);});
+  const monthKeys=Object.keys(byMonth).sort().reverse();
+
+  return `
+  ${showClear ? buildClearModal() : ""}
+  ${editing   ? buildEditModal(editing,showProcGroup,showEMGroup) : ""}
+
+  <div class="header">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <h1>🩺 GI wRVU Tracker</h1>
+      ${saveStatus==="saving"?`<span class="save-badge">💾 Saving…</span>`:saveStatus==="saved"?`<span class="save-badge">✅ Saved</span>`:saveStatus==="error"?`<span class="save-badge" style="background:rgba(239,68,68,.4)">⚠️ Error</span>`:""}
+    </div>
+    <p>EGD · Colonoscopy · ERCP · Consults · Follow-ups — 2026 wRVU</p>
+    <div class="hdr-btns">
+      <button class="hdr-btn" onclick="exportCSV()">⬇ Export CSV</button>
+      <button class="hdr-btn" onclick="document.getElementById('importFile').click()">⬆ Import CSV</button>
+      <button class="hdr-btn danger" onclick="st({showClear:true})">🗑 Clear All</button>
+      <input type="file" id="importFile" accept=".csv" style="display:none" onchange="importCSV(this)"/>
+    </div>
+    <div class="stat-row">
+      ${[["Total wRVU",grandTotal.toFixed(2)],["Cases",cases.length],["Procedures",allProcs.length],["Months",monthKeys.length]].map(([l,v])=>`
+        <div class="stat"><div class="stat-v">${v}</div><div class="stat-l">${l}</div></div>`).join("")}
+    </div>
+  </div>
+
+  <div class="tabs">
+    ${[["log","📋 Log"],["photo","📷 Upload"],["summary","📊 Summary"],["codes","📖 Codes"]].map(([id,label])=>
+      `<button class="tab${tab===id?" active":""}" onclick="setTab('${id}')">${label}</button>`
+    ).join("")}
+  </div>
+
+  ${tab==="log"    ? buildLog(draft,cases,showProcGroup,showEMGroup) : ""}
+  ${tab==="photo"  ? buildPhoto(pending,aiMsg,aiLoading,showProcGroup,showEMGroup) : ""}
+  ${tab==="summary"? buildSummary(cases,byMonth,monthKeys,grandTotal,allProcs) : ""}
+  ${tab==="codes"  ? buildCodes() : ""}
+  `;
+}
+
+// ─── PROC SECTION ────────────────────────────────────────────────────────────
+function buildProcSection(cat, procs, prefix){
+  const catProcs = procs.filter(p=>p.cat===cat);
+  const color = CAT_COLOR[cat];
+  const bg = CAT_BG[cat];
+  const catWRVU = catProcs.reduce((s,p)=>s+(cptFor(p.code)?.wrvu||0),0);
+  const opts = CPT_DATA.filter(c=>c.cat===cat).map(c=>`<option value="${c.code}">${c.code} — ${c.desc} (${c.wrvu})</option>`).join("");
+  return `
+  <div class="proc-section" style="border-color:${color}30">
+    <div class="proc-section-head" style="background:${color}15;border-bottom:1px solid ${color}22">
+      <span class="proc-section-title" style="color:${color}">${CAT_ICON[cat]} ${cat}${catProcs.length?`<span class="proc-badge" style="background:${color}">${catWRVU.toFixed(2)} wRVU</span>`:""}</span>
+      <button class="add-btn" style="background:${color}" onclick="${prefix}AddProc('${cat}')">+ Add</button>
+    </div>
+    ${catProcs.length===0
+      ? `<div class="proc-empty">No ${cat} — tap + Add to include one</div>`
+      : `<div class="proc-body">${catProcs.map(p=>{
+          const cpt=cptFor(p.code);
+          return `<div class="proc-row">
+            <select class="proc-select" style="border-left:3px solid ${color}" onchange="${prefix}ChgProc('${p.id}',this.value)">${opts.replace(`value="${p.code}"`,`value="${p.code}" selected`)}</select>
+            <span class="proc-wrvu" style="color:${color}">${cpt?cpt.wrvu.toFixed(2):"—"}</span>
+            <button class="rm-btn" onclick="${prefix}RmProc('${p.id}')">×</button>
+          </div>`;
+        }).join("")}</div>`
+    }
+  </div>`;
+}
+
+function buildProcGroups(procs, prefix, showProcGroup, showEMGroup){
+  return `
+  <button class="group-hdr" onclick="toggleGroup('showProcGroup')">
+    <span class="arrow">${showProcGroup?"▼":"▶"}</span> 🔬 PROCEDURES (EGD / COLONOSCOPY / ERCP)
+  </button>
+  ${showProcGroup ? PROC_CATS.map(cat=>buildProcSection(cat,procs,prefix)).join("") : ""}
+  <button class="group-hdr" onclick="toggleGroup('showEMGroup')">
+    <span class="arrow">${showEMGroup?"▼":"▶"}</span> 🏥 E&amp;M CODES (CONSULTS &amp; FOLLOW-UPS)
+  </button>
+  ${showEMGroup ? EM_CATS.map(cat=>buildProcSection(cat,procs,prefix)).join("") : ""}
+  `;
+}
+
+// ─── LOG TAB ─────────────────────────────────────────────────────────────────
+function buildLog(draft, cases, showProcGroup, showEMGroup){
+  const total = caseWRVU(draft);
+  const codes = draft.procs.map(p=>cptFor(p.code)?.code||"?").join(" + ")||"none";
+  const canSave = draft.patient.trim() && draft.procs.length>0;
+  const byCat={};
+  cases.forEach(c=>c.procs.forEach(p=>{
+    const cpt=cptFor(p.code); const cat=cpt?.cat||"?";
+    if(!byCat[cat])byCat[cat]=[];byCat[cat].push({...p,cpt});
+  }));
+
+  return `
+  <div class="card">
+    <h3>Add Patient Case</h3>
+    <div class="grid2">
+      <div><label class="lbl">Date</label><input class="input" type="date" value="${draft.date}" onchange="updDraft('date',this.value)"/></div>
+      <div><label class="lbl">Patient / MRN</label><input class="input" type="text" placeholder="Smith, John" value="${esc(draft.patient)}" oninput="updDraft('patient',this.value)"/></div>
+      <div class="span2"><label class="lbl">Note (optional)</label><input class="input" type="text" placeholder="e.g. 10mm polyp, jaundice" value="${esc(draft.note)}" oninput="updDraft('note',this.value)"/></div>
+    </div>
+    ${buildProcGroups(draft.procs,"d",showProcGroup,showEMGroup)}
+    <div class="summary-bar" style="margin-top:10px">
+      <span class="summary-codes">${draft.procs.length} proc${draft.procs.length!==1?"s":""} · ${codes}</span>
+      <span class="summary-wrvu">${total.toFixed(2)} wRVU</span>
+    </div>
+    <button class="save-case-btn" ${canSave?"":"disabled"} onclick="commitDraft()">+ Save Case to Log</button>
+    ${!canSave?`<p class="hint">${!draft.patient.trim()?"Enter a patient name/MRN":"Add at least one procedure"}</p>`:""}
+  </div>
+
+  ${cases.length===0
+    ? `<div class="empty"><div class="icon">📋</div><p>No cases yet.<br>Add manually or upload a patient list.</p></div>`
+    : cases.map(c=>{
+        const t=caseWRVU(c);
+        const bC={};
+        c.procs.forEach(p=>{const cpt=cptFor(p.code);const cat=cpt?.cat||"?";if(!bC[cat])bC[cat]=[];bC[cat].push({...p,cpt});});
+        return `
+        <div class="case-card">
+          <div class="case-top">
+            <div><span class="case-name">${esc(c.patient)||"—"}</span><span class="case-meta">${c.date}</span>${c.note?`<span class="case-note">· ${esc(c.note)}</span>`:""}</div>
+            <div class="case-actions">
+              <span class="case-wrvu">${t.toFixed(2)}</span>
+              <button class="icon-btn" onclick="startEdit('${c.id}')">✏️</button>
+              <button class="delete-btn" onclick="removeCase('${c.id}')">🗑</button>
+            </div>
+          </div>
+          ${Object.entries(bC).map(([cat,ps])=>`
+            <div class="cat-row">
+              <span class="cat-label" style="color:${CAT_COLOR[cat]||'#6b7280'}">${CAT_ICON[cat]||""} ${cat}</span>
+              ${ps.map(p=>p.cpt?`<span class="chip" style="background:${CAT_BG[p.cpt.cat]};color:${CAT_COLOR[p.cpt.cat]}">${p.cpt.code} · ${p.cpt.wrvu.toFixed(2)}</span>`:"").join("")}
+            </div>`).join("")}
+        </div>`;
+      }).join("")}
+  `;
+}
+
+// ─── PHOTO TAB ───────────────────────────────────────────────────────────────
+function buildPhoto(pending, aiMsg, aiLoading, showProcGroup, showEMGroup){
+  return `
+  <div class="card">
+    <div class="photo-area">
+      <div class="icon">📷</div>
+      <h3 style="margin:0 0 8px">Upload Your Patient List</h3>
+      <p style="color:#6b7280;font-size:14px;margin:0 0 16px;line-height:1.6">Snap a photo of your schedule. AI reads every name, then <strong>you assign the CPT codes.</strong></p>
+      <div style="text-align:left;margin-bottom:14px;">
+        <label class="lbl">🔑 Anthropic API Key</label>
+        <input class="input" type="password" id="apiKeyInput" placeholder="sk-ant-..." value="${esc(state.apiKey||"")}" oninput="saveApiKey(this.value)" style="font-family:monospace;font-size:13px;letter-spacing:0.5px"/>
+        <p style="font-size:11px;color:#9ca3af;margin:5px 0 0;line-height:1.5;">Required for AI photo reading. Get yours free at <strong>console.anthropic.com</strong>. Stored only on this device.</p>
+      </div>
+      <div class="photo-btns">
+        <button class="photo-btn" onclick="triggerFile(false)">📁 Choose File</button>
+        <button class="photo-btn primary" onclick="triggerFile(true)">📷 Take Photo</button>
+      </div>
+      <input type="file" id="photoFile" accept="image/*" style="display:none" onchange="handlePhoto(this)"/>
+      ${aiLoading?`<p style="color:#2563eb;font-weight:600;margin-top:14px">⏳ Reading patient list with AI…</p>`:""}
+      ${aiMsg?`<div class="ai-msg ${aiMsg.startsWith("✅")?"ai-ok":"ai-err"}">${aiMsg}</div>`:""}
+    </div>
+  </div>
+  ${pending.length>0?`
+  <div class="card">
+    <h3>Review Detected Patients</h3>
+    <p style="color:#6b7280;font-size:13px;margin:0 0 14px">Set date and assign CPT codes, then confirm.</p>
+    ${pending.map((p,pi)=>`
+    <div class="pending-card ${p.selected?"":"dim"}">
+      <div class="pending-top">
+        <input type="checkbox" ${p.selected?"checked":""} onchange="togglePending(${pi},this.checked)" style="width:18px;height:18px;flex-shrink:0"/>
+        <span style="font-weight:700;font-size:14px">${esc(p.patient)}</span>
+        ${p.note?`<span style="color:#6b7280;font-size:12px">· ${esc(p.note)}</span>`:""}
+        <span style="margin-left:auto;font-weight:800;color:#1e3a5f;font-size:13px">${p.procs.reduce((s,pr)=>s+(cptFor(pr.code)?.wrvu||0),0).toFixed(2)} wRVU</span>
+        <button class="delete-btn" onclick="removePending(${pi})" title="Remove patient">🗑</button>
+      </div>
+      <div style="margin-bottom:10px"><label class="lbl">Date</label><input class="input" type="date" value="${p.date}" onchange="setPendingDate(${pi},this.value)" style="width:auto"/></div>
+      ${ALL_CATS.map(cat=>{
+        const catProcs=p.procs.filter(pr=>pr.cat===cat);
+        const color=CAT_COLOR[cat];
+        const opts=CPT_DATA.filter(c=>c.cat===cat).map(c=>`<option value="${c.code}">${c.code} — ${c.desc} (${c.wrvu})</option>`).join("");
+        return `
+        <div style="margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-size:11px;font-weight:700;color:${color}">${CAT_ICON[cat]} ${cat}</span>
+            <button class="add-btn" style="background:${color};padding:3px 9px;font-size:11px" onclick="pendingAddProc(${pi},'${cat}')">+ Add</button>
+          </div>
+          ${catProcs.map(pr=>{
+            const gi=p.procs.findIndex(x=>x.id===pr.id);
+            const cpt=cptFor(pr.code);
+            return `<div class="proc-row">
+              <select class="proc-select" style="border-left:3px solid ${color}" onchange="pendingChgProc(${pi},${gi},this.value)">${opts.replace(`value="${pr.code}"`,`value="${pr.code}" selected`)}</select>
+              <span class="proc-wrvu" style="color:${color}">${(cpt?.wrvu||0).toFixed(2)}</span>
+              <button class="rm-btn" onclick="pendingRmProc(${pi},'${pr.id}')">×</button>
+            </div>`;
+          }).join("")}
+        </div>`;
+      }).join("")}
+    </div>`).join("")}
+    <button class="confirm-btn" onclick="confirmPending()">✅ Add ${pending.filter(p=>p.selected).length} Case(s) to Log</button>
+  </div>`:""}
+  `;
+}
+
+// ─── SUMMARY TAB ─────────────────────────────────────────────────────────────
+function buildSummary(cases,byMonth,monthKeys,grandTotal,allProcs){
+  if(!monthKeys.length) return `<div class="empty"><div class="icon">📊</div><p>No data yet. Start logging cases.</p></div>`;
+  return `
+  <div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:16px 18px">
+    <div>
+      <div style="font-size:11px;font-weight:700;color:#6b7280">ALL-TIME TOTAL</div>
+      <div style="font-size:26px;font-weight:900;color:#1e3a5f">${grandTotal.toFixed(2)} <span style="font-size:13px;font-weight:500;color:#6b7280">wRVU</span></div>
+      <div style="font-size:12px;color:#9ca3af">${cases.length} cases · ${allProcs.length} procedures</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:11px;font-weight:700;color:#6b7280">AVG / MONTH</div>
+      <div style="font-size:22px;font-weight:700;color:#2563eb">${(grandTotal/monthKeys.length).toFixed(1)}</div>
+    </div>
+  </div>
+  ${monthKeys.map(mk=>{
+    const mCases=byMonth[mk];
+    const mProcs=mCases.flatMap(c=>c.procs.map(p=>({...p,...(cptFor(p.code)||{wrvu:0,cat:"?"})})));
+    const total=mProcs.reduce((s,p)=>s+p.wrvu,0);
+    const byCat={};
+    mProcs.forEach(p=>{byCat[p.cat]=(byCat[p.cat]||0)+p.wrvu;});
+    const expanded=state.expandedMonths[mk]!==false;
+    return `
+    <div class="month-card">
+      <div class="month-head" onclick="toggleMonth('${mk}')">
+        <div><span class="month-name">${monthLabel(mk)}</span><span class="month-sub">${mCases.length} cases · ${mProcs.length} procs</span></div>
+        <div style="display:flex;align-items:center"><span class="month-wrvu">${total.toFixed(2)}</span><span style="color:#9ca3af">${expanded?"▲":"▼"}</span></div>
+      </div>
+      ${expanded?`
+      <div class="month-body">
+        <div class="cat-chips-row">
+          ${ALL_CATS.filter(cat=>byCat[cat]).map(cat=>`
+          <div class="cat-chip" style="background:${CAT_BG[cat]};border-left:3px solid ${CAT_COLOR[cat]}">
+            <div class="cat-chip-name" style="color:${CAT_COLOR[cat]}">${CAT_ICON[cat]} ${cat}</div>
+            <div class="cat-chip-val">${byCat[cat].toFixed(2)}</div>
+            <div class="cat-chip-cnt">${mProcs.filter(p=>p.cat===cat).length} procs</div>
+          </div>`).join("")}
+        </div>
+        ${[...mCases].sort((a,b)=>a.date.localeCompare(b.date)).map(c=>{
+          const cTotal=caseWRVU(c);
+          const bC={};
+          c.procs.forEach(p=>{const cpt=cptFor(p.code);const cat=cpt?.cat||"?";if(!bC[cat])bC[cat]=[];bC[cat].push({...p,cpt});});
+          return `
+          <div class="month-case">
+            <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+              <div><span style="font-weight:600;font-size:13px">${esc(c.patient)||"—"}</span><span style="color:#9ca3af;font-size:11px;margin-left:8px">${c.date}</span>${c.note?`<span style="color:#9ca3af;font-size:11px;margin-left:6px">· ${esc(c.note)}</span>`:""}</div>
+              <span style="font-weight:800;color:#1e3a5f;font-size:13px">${cTotal.toFixed(2)}</span>
+            </div>
+            ${Object.entries(bC).map(([cat,ps])=>`
+            <div class="cat-row">
+              <span class="cat-label" style="color:${CAT_COLOR[cat]||"#6b7280"}">${CAT_ICON[cat]||""}</span>
+              ${ps.map(p=>p.cpt?`<span class="chip" style="background:${CAT_BG[p.cpt.cat]};color:${CAT_COLOR[p.cpt.cat]}">${p.cpt.code} · ${p.cpt.wrvu.toFixed(2)}</span>`:"").join("")}
+            </div>`).join("")}
+          </div>`;
+        }).join("")}
+        <div class="month-footer"><span>Monthly Total</span><span style="color:#1e3a5f;font-size:15px">${total.toFixed(2)} wRVU</span></div>
+      </div>`:""}
+    </div>`;
+  }).join("")}`;
+}
+
+// ─── CODES TAB ────────────────────────────────────────────────────────────────
+function buildCodes(){
+  function table(cats){
+    return cats.map(cat=>`
+    <div style="background:white;border-radius:12px;margin-bottom:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+      <div style="background:${CAT_COLOR[cat]};padding:10px 14px"><span style="font-weight:800;color:white;font-size:14px">${CAT_ICON[cat]} ${cat}</span></div>
+      <table class="ref-table">
+        <thead><tr><th class="ref-th">CPT</th><th class="ref-th">Description</th><th class="ref-th">wRVU</th></tr></thead>
+        <tbody>${CPT_DATA.filter(c=>c.cat===cat).map((c,i)=>`
+          <tr style="background:${i%2?"#fafafa":"white"}">
+            <td class="ref-td ref-code" style="color:${CAT_COLOR[cat]}">${c.code}</td>
+            <td class="ref-td">${c.desc}</td>
+            <td class="ref-td" style="font-weight:800;font-size:15px;color:#1e3a5f">${c.wrvu.toFixed(2)}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>`).join("");
+  }
+  return `
+  <div class="ref-section-hdr" style="background:#1e3a5f"><span style="font-weight:800;color:white;font-size:14px">🔬 Endoscopy Procedures</span></div>
+  ${table(PROC_CATS)}
+  <div class="ref-section-hdr" style="background:#4c1d95;margin-top:16px"><span style="font-weight:800;color:white;font-size:14px">🏥 E&amp;M Codes</span></div>
+  ${table(EM_CATS)}
+  <div class="disclaimer"><strong>⚠️ Disclaimer:</strong> wRVU values reflect the 2026 CMS Physician Fee Schedule. Values may differ by payer, site of service, and locality. Always verify with your billing department and cms.gov.</div>`;
+}
+
+// ─── MODALS ──────────────────────────────────────────────────────────────────
+function buildClearModal(){
+  return `<div class="modal-bg">
+  <div class="modal" style="max-width:320px;text-align:center">
+    <div style="font-size:44px">⚠️</div>
+    <h3>Clear All Data?</h3>
+    <p style="color:#6b7280;font-size:14px;margin:0 0 20px">Permanently deletes all ${state.cases.length} cases. Export a backup first.</p>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="st({showClear:false})">Cancel</button>
+      <button class="modal-confirm modal-danger" onclick="clearAll()">Delete All</button>
+    </div>
+  </div></div>`;
+}
+
+function buildEditModal(ec, showProcGroup, showEMGroup){
+  return `<div class="modal-bg">
+  <div class="modal">
+    <h3>Edit Case</h3>
+    <div class="grid2">
+      <div><label class="lbl">Date</label><input class="input" type="date" value="${ec.date}" onchange="editField('date',this.value)"/></div>
+      <div><label class="lbl">Patient</label><input class="input" type="text" value="${esc(ec.patient)}" oninput="editField('patient',this.value)"/></div>
+      <div class="span2"><label class="lbl">Note</label><input class="input" type="text" value="${esc(ec.note)}" oninput="editField('note',this.value)"/></div>
+    </div>
+    ${buildProcGroups(ec.procs,"e",showProcGroup,showEMGroup)}
+    <div class="summary-bar" style="margin-top:10px">
+      <span class="summary-codes">${ec.procs.length} proc${ec.procs.length!==1?"s":""}</span>
+      <span class="summary-wrvu">${caseWRVU(ec).toFixed(2)} wRVU</span>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="cancelEdit()">Cancel</button>
+      <button class="modal-confirm" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div></div>`;
+}
+
+// ─── ACTIONS ─────────────────────────────────────────────────────────────────
+function st(patch){ Object.assign(state,patch); render(); }
+function setTab(t){ st({tab:t}); }
+function toggleGroup(key){ st({[key]:!state[key]}); }
+function toggleMonth(mk){ state.expandedMonths[mk]=state.expandedMonths[mk]===false?true:false; render(); }
+
+function updDraft(k,v){ state.draft[k]=v; render(); }
+function dAddProc(cat){ const code=CPT_DATA.find(c=>c.cat===cat)?.code; state.draft.procs.push({id:uid(),code,cat}); render(); }
+function dRmProc(id){ state.draft.procs=state.draft.procs.filter(p=>p.id!==id); render(); }
+function dChgProc(id,code){ const cpt=cptFor(code); state.draft.procs=state.draft.procs.map(p=>p.id===id?{...p,code,cat:cpt?.cat||p.cat}:p); render(); }
+function commitDraft(){
+  if(!state.draft.patient.trim()||!state.draft.procs.length) return;
+  state.cases.unshift(state.draft);
+  state.draft=newCase(state.draft.date);
+  scheduleSave(); render();
+}
+function removeCase(id){ state.cases=state.cases.filter(c=>c.id!==id); scheduleSave(); render(); }
+
+function startEdit(id){ state.editing=JSON.parse(JSON.stringify(state.cases.find(c=>c.id===id))); render(); }
+function cancelEdit(){ st({editing:null}); }
+function editField(k,v){ state.editing[k]=v; render(); }
+function eAddProc(cat){ const code=CPT_DATA.find(c=>c.cat===cat)?.code; state.editing.procs.push({id:uid(),code,cat}); render(); }
+function eRmProc(id){ state.editing.procs=state.editing.procs.filter(p=>p.id!==id); render(); }
+function eChgProc(id,code){ const cpt=cptFor(code); state.editing.procs=state.editing.procs.map(p=>p.id===id?{...p,code,cat:cpt?.cat||p.cat}:p); render(); }
+function saveEdit(){ state.cases=state.cases.map(c=>c.id===state.editing.id?state.editing:c); state.editing=null; scheduleSave(); render(); }
+
+function saveApiKey(v){ state.apiKey=v; try{ localStorage.setItem("gi-wrvu-apikey",v); }catch(e){} }
+function clearAll(){ state.cases=[]; state.showClear=false; localStorage.removeItem(SK); render(); }
+
+// ── CSV helpers ──
+function csvEscape(v){
+  const s = String(v==null?"":v);
+  return (s.includes(",")||s.includes('"')||s.includes("\n")) ? `"${s.replace(/"/g,'""')}"` : s;
+}
+function csvRow(arr){ return arr.map(csvEscape).join(","); }
+
+function exportCSV(){
+  const headers = ["Date","Patient","Note","Category","CPT_Code","Description","Proc_wRVU","Case_Total_wRVU"];
+  const lines = [csvRow(headers)];
+  state.cases.forEach(c=>{
+    const total = caseWRVU(c).toFixed(2);
+    if(c.procs.length===0){
+      lines.push(csvRow([c.date, c.patient, c.note||"", "", "", "", "", total]));
+    } else {
+      c.procs.forEach((p,i)=>{
+        const cpt = cptFor(p.code);
+        lines.push(csvRow([
+          c.date, c.patient, c.note||"",
+          cpt?.cat||"", p.code, cpt?.desc||"",
+          cpt?.wrvu||"",
+          i===0 ? total : ""
+        ]));
+      });
+    }
+  });
+  const csv = lines.join("\n");
+  const blob = new Blob([csv], {type:"text/csv"});
+  const a = Object.assign(document.createElement("a"),{
+    href: URL.createObjectURL(blob),
+    download: `gi-wrvu-${todayStr()}.csv`
+  });
+  a.click();
+}
+
+function importCSV(el){
+  const file=el.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const lines = e.target.result.split(/\r?\n/).filter(l=>l.trim());
+      if(lines.length < 2){ alert("No data found in file."); return; }
+
+      // Parse header row
+      const headers = parseCSVLine(lines[0]);
+      const idx = {};
+      headers.forEach((h,i)=>{ idx[h.trim()]=i; });
+
+      // Required columns
+      if(idx["Date"]===undefined || idx["Patient"]===undefined){
+        alert("⚠️ File must have Date and Patient columns."); return;
+      }
+
+      // Group rows into cases
+      const caseMap = new Map();
+      for(let i=1;i<lines.length;i++){
+        const cols = parseCSVLine(lines[i]);
+        const date    = (cols[idx["Date"]]||"").trim();
+        const patient = (cols[idx["Patient"]]||"").trim();
+        const note    = (cols[idx["Note"]]||"").trim();
+        if(!patient) continue;
+        const key = `${date}__${patient}__${note}`;
+        if(!caseMap.has(key)){
+          caseMap.set(key,{id:uid(),date:date||todayStr(),patient,note,procs:[]});
+        }
+        const code = (cols[idx["CPT_Code"]]||"").trim();
+        if(code){
+          const cpt = cptFor(code);
+          caseMap.get(key).procs.push({id:uid(),code,cat:cpt?.cat||"EGD"});
+        }
+      }
+
+      const imported = Array.from(caseMap.values());
+      const existingKeys = new Set(state.cases.map(c=>`${c.date}__${c.patient}`));
+      const toAdd = imported.filter(c=>!existingKeys.has(`${c.date}__${c.patient}`));
+      state.cases = [...state.cases, ...toAdd];
+      scheduleSave(); render();
+      alert(toAdd.length===0 ? "No new cases found (already imported)." : `✅ Imported ${toAdd.length} case(s).`);
+    } catch(err){
+      alert("⚠️ Could not read file: "+err.message);
+    }
+  };
+  r.readAsText(file); el.value="";
+}
+
+function parseCSVLine(line){
+  const result=[]; let cur=""; let inQ=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(ch==='"'){
+      if(inQ && line[i+1]==='"'){ cur+='"'; i++; }
+      else inQ=!inQ;
+    } else if(ch===','&&!inQ){
+      result.push(cur); cur="";
+    } else { cur+=ch; }
+  }
+  result.push(cur);
+  return result;
+}
+
+// Photo / AI
+function triggerFile(camera){
+  const el=document.getElementById("photoFile");
+  if(camera) el.setAttribute("capture","environment"); else el.removeAttribute("capture");
+  el.click();
+}
+async function handlePhoto(el){
+  const file=el.files[0]; if(!file) return;
+  const apiKey=state.apiKey||"";
+  if(!apiKey){
+    state.aiMsg="⚠️ Enter your Anthropic API key above first.";
+    render(); return;
+  }
+  // Snapshot file before any re-render can destroy the input element
+  const fileType=file.type||"image/jpeg";
+  const fileData=await new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result.split(",")[1]);
+    r.onerror=()=>rej(new Error("File read failed"));
+    r.readAsDataURL(file);
+  });
+  el.value="";
+  state.aiLoading=true; state.aiMsg=""; state.pending=[];
+  render();
+  try{
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "x-api-key":apiKey,
+        "anthropic-version":"2023-06-01",
+        "anthropic-dangerous-direct-browser-access":"true"
+      },
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514",max_tokens:2000,
+        messages:[{role:"user",content:[
+          {type:"image",source:{type:"base64",media_type:fileType,data:fileData}},
+          {type:"text",text:`This is a gastroenterologist's patient schedule or roster. Extract every patient on the list.
+For each patient return a JSON object with ONLY:
+  "name": the patient name or MRN/identifier exactly as written
+  "note": any brief annotation next to the patient (room, time, procedure type, etc) — copy verbatim, do NOT assign CPT codes
+Respond ONLY with a raw JSON array, no markdown. Example:
+[{"name":"Smith, John","note":"EGD 8am"},{"name":"Doe, Jane","note":"ERCP"}]`}
+        ]}]
+      })
+    });
+    if(!res.ok){
+      const errData=await res.json().catch(()=>({}));
+      const errMsg=errData?.error?.message||`HTTP ${res.status}`;
+      state.aiMsg=`⚠️ API error: ${errMsg}`;
+      state.aiLoading=false; render(); return;
+    }
+    const data=await res.json();
+    const text=(data.content||[]).map(b=>b.text||"").join("");
+    const parsed=JSON.parse(text.replace(/```json|```/g,"").trim());
+    state.pending=parsed.map(p=>({id:uid(),date:todayStr(),patient:p.name||"",note:p.note||"",selected:true,procs:[]}));
+    state.aiMsg=`✅ Found ${parsed.length} patient(s) — review and confirm below.`;
+  }catch(e){
+    state.aiMsg=`⚠️ Error: ${e.message||"Unknown error"}. Check your API key and internet connection.`;
+  }
+  state.aiLoading=false; render();
+}
+function togglePending(i,v){ state.pending[i].selected=v; render(); }
+function removePending(i){ state.pending.splice(i,1); render(); }
+function setPendingDate(i,v){ state.pending[i].date=v; render(); }
+function pendingAddProc(i,cat){ const code=CPT_DATA.find(c=>c.cat===cat)?.code; state.pending[i].procs.push({id:uid(),code,cat}); render(); }
+function pendingRmProc(i,pid){ state.pending[i].procs=state.pending[i].procs.filter(p=>p.id!==pid); render(); }
+function pendingChgProc(i,gi,code){ const cpt=cptFor(code); state.pending[i].procs[gi]={...state.pending[i].procs[gi],code,cat:cpt?.cat||state.pending[i].procs[gi].cat}; render(); }
+function confirmPending(){
+  const toAdd=state.pending.filter(p=>p.selected).map(p=>({id:p.id,date:p.date,patient:p.patient,note:p.note,procs:p.procs.map(pr=>({id:pr.id,code:pr.code,cat:pr.cat}))}));
+  state.cases=[...toAdd,...state.cases];
+  state.pending=[]; state.aiMsg=""; state.tab="log";
+  scheduleSave(); render();
+}
+
+// Global function bridge (needed since onclick strings run in global scope)
+window.setTab=setTab; window.toggleGroup=toggleGroup; window.toggleMonth=toggleMonth;
+window.updDraft=updDraft; window.dAddProc=dAddProc; window.dRmProc=dRmProc; window.dChgProc=dChgProc;
+window.commitDraft=commitDraft; window.removeCase=removeCase;
+window.startEdit=startEdit; window.cancelEdit=cancelEdit; window.editField=editField;
+window.eAddProc=eAddProc; window.eRmProc=eRmProc; window.eChgProc=eChgProc; window.saveEdit=saveEdit;
+window.clearAll=clearAll; window.exportCSV=exportCSV; window.importCSV=importCSV;
+window.triggerFile=triggerFile; window.handlePhoto=handlePhoto;
+window.togglePending=togglePending; window.removePending=removePending; window.setPendingDate=setPendingDate;
+window.pendingAddProc=pendingAddProc; window.pendingRmProc=pendingRmProc;
+window.pendingChgProc=pendingChgProc; window.confirmPending=confirmPending;
+window.st=st;
+
+function attachEvents(){}
+function esc(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+// ─── BOOT ────────────────────────────────────────────────────────────────────
+state.cases = loadCases();
+try{ state.apiKey = localStorage.getItem("gi-wrvu-apikey")||""; }catch(e){}
+window.saveApiKey=saveApiKey;
+render();
+</script>
+</body>
+</html>
