@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GI Scribe">
+<meta name="theme-color" content="#0a0e14">
+<title>GI Scribe</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
+:root{--bg:#0a0e14;--surface:#111820;--surface2:#1a2332;--border:#1e2d3d;--accent:#00d4aa;--accent2:#0096ff;--danger:#ff4757;--warn:#ffa502;--text:#e8f0fe;--text-dim:#6b8099;--text-muted:#3d5166;--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;position:fixed;width:100%}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 40% at 20% 10%,rgba(0,212,170,.05) 0%,transparent 60%),radial-gradient(ellipse 40% 50% at 80% 80%,rgba(0,150,255,.04) 0%,transparent 60%);pointer-events:none;z-index:0}
+header{position:relative;z-index:10;padding:calc(var(--safe-top) + 12px) 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:rgba(10,14,20,.97);flex-shrink:0}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px}
+.logo-name{font-size:17px;font-weight:600;letter-spacing:-.3px}
+.logo-sub{font-size:10px;color:var(--text-dim);font-family:'DM Mono',monospace;letter-spacing:.8px;text-transform:uppercase}
+.status-pill{display:flex;align-items:center;gap:7px;padding:5px 12px;border-radius:20px;font-size:12px;font-family:'DM Mono',monospace;border:1px solid var(--border);background:var(--surface);transition:all .3s}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--text-muted);transition:all .3s}
+.status-pill.recording{border-color:rgba(255,71,87,.5);color:#ff6b78}
+.status-pill.recording .status-dot{background:var(--danger);box-shadow:0 0 8px var(--danger);animation:blink 1.2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;z-index:5}
+.tab{flex:1;padding:13px 8px;text-align:center;font-size:13px;font-weight:500;color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;user-select:none;-webkit-user-select:none}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.panels{flex:1;overflow:hidden;position:relative;z-index:1}
+.panel{position:absolute;inset:0;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .2s}
+.panel.active{opacity:1;pointer-events:all}
+.wave-wrap{padding:12px 20px 10px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0}
+canvas#waveform{width:100%;height:48px;display:block;border-radius:6px}
+.rec-controls{padding:12px 20px;display:flex;gap:10px;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0}
+.timer-row{display:none;justify-content:center;padding:6px 0;font-family:'DM Mono',monospace;font-size:12px;color:var(--accent);flex-shrink:0}
+.timer-row.active{display:flex}
+.btn{display:flex;align-items:center;justify-content:center;gap:7px;padding:13px 18px;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;transition:all .15s;border:1px solid transparent;font-family:'DM Sans',sans-serif;-webkit-appearance:none;min-height:50px}
+.btn-record{flex:1;background:var(--accent);color:#0a0e14;font-weight:600}
+.btn-record.recording{background:var(--danger);color:#fff}
+.btn-record:active{transform:scale(.97)}
+.btn-sm{background:var(--surface2);color:var(--text-dim);border-color:var(--border);padding:13px 15px;min-height:50px}
+.btn-sm:active{background:#243040}
+.btn:disabled{opacity:.4}
+.scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px 20px}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:var(--text-muted);text-align:center}
+.empty-state .icon{font-size:40px;opacity:.4}
+.empty-state p{font-size:14px;line-height:1.7;max-width:260px;color:var(--text-dim)}
+.transcript-body{font-size:14px;line-height:1.85;color:#b0c4d8;font-family:'DM Mono',monospace;white-space:pre-wrap}
+.transcript-body .interim{color:var(--text-muted);font-style:italic}
+.report-actions{padding:12px 20px;display:flex;gap:10px;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0}
+.btn-generate{flex:1;background:linear-gradient(135deg,#005c3a,#003d27);color:#00ffb3;border:1px solid rgba(0,212,170,.3);font-weight:600;font-size:15px;min-height:52px}
+.btn-generate:not(:disabled):active{transform:scale(.98)}
+.btn-copy{background:var(--surface2);color:var(--text-dim);border:1px solid var(--border);padding:13px 15px;font-size:18px;min-height:52px;min-width:52px}
+.spinner{width:16px;height:16px;border:2px solid rgba(0,255,179,.3);border-top-color:#00ffb3;border-radius:50%;animation:spin .8s linear infinite;display:none}
+.spinner.active{display:block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.report-section{margin-bottom:22px;animation:fadeUp .35s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.section-title{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(0,212,170,.15)}
+.report-field{margin-bottom:10px}
+.field-label{font-size:11px;color:var(--text-dim);margin-bottom:4px;font-weight:500}
+.field-value{font-size:12px;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 13px;line-height:1.6;min-height:38px;font-family:'DM Mono',monospace;transition:border-color .4s,box-shadow .4s}
+.field-value.glow{border-color:rgba(0,212,170,.5);box-shadow:0 0 0 2px rgba(0,212,170,.08)}
+.tag{display:inline-block;padding:3px 9px;border-radius:5px;font-size:11px;font-family:'DM Mono',monospace;margin:2px 3px 2px 0}
+.tag-finding{background:rgba(0,150,255,.12);color:var(--accent2);border:1px solid rgba(0,150,255,.25)}
+.shimmer-wrap{padding:20px}
+.shimmer{background:linear-gradient(90deg,var(--surface2) 25%,#243040 50%,var(--surface2) 75%);background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:6px;height:15px;margin-bottom:8px}
+@keyframes shimmer{to{background-position:-200% 0}}
+.toast{position:fixed;bottom:calc(var(--safe-bottom) + 16px);left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:11px 22px;border-radius:10px;font-size:13px;opacity:0;transition:all .3s;z-index:999;white-space:nowrap;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.error{border-color:rgba(255,71,87,.5);color:var(--danger)}
+.toast.success{border-color:rgba(0,212,170,.5);color:var(--accent)}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;align-items:center;justify-content:center;padding:24px}
+.modal-overlay.show{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:28px 24px;max-width:340px;width:100%;text-align:center}
+.modal-icon{font-size:44px;margin-bottom:14px}
+.modal h2{font-size:18px;font-weight:600;margin-bottom:10px}
+.modal p{font-size:13px;color:var(--text-dim);line-height:1.65;margin-bottom:20px}
+.modal-steps{background:var(--surface2);border-radius:10px;padding:14px 16px;margin-bottom:20px;text-align:left}
+.modal-step{font-size:12px;color:var(--text-dim);padding:5px 0;display:flex;gap:10px;font-family:'DM Mono',monospace}
+.step-num{color:var(--accent);font-weight:500;min-width:18px}
+.btn-modal{width:100%;padding:14px;background:var(--accent);color:#0a0e14;border-radius:10px;font-size:15px;font-weight:600;border:none;cursor:pointer;font-family:'DM Sans',sans-serif}
+.btn-modal-close{width:100%;padding:12px;background:transparent;color:var(--text-dim);border:1px solid var(--border);border-radius:10px;font-size:14px;margin-top:8px;cursor:pointer;font-family:'DM Sans',sans-serif}
+</style>
+</head>
+<body>
+<div class="modal-overlay" id="permModal">
+  <div class="modal">
+    <div class="modal-icon">🎙</div>
+    <h2>Microphone Access Needed</h2>
+    <p>GI Scribe needs microphone permission. On iPhone, allow access when Safari prompts you.</p>
+    <div class="modal-steps">
+      <div class="modal-step"><span class="step-num">1.</span><span>Tap <strong>Allow</strong> when Safari asks</span></div>
+      <div class="modal-step"><span class="step-num">2.</span><span>If denied: Settings → Safari → Microphone → Allow</span></div>
+      <div class="modal-step"><span class="step-num">3.</span><span>Connect AirPods <em>before</em> tapping Record</span></div>
+    </div>
+    <button class="btn-modal" onclick="dismissModal()">Got it, Try Again</button>
+    <button class="btn-modal-close" onclick="dismissModal()">Dismiss</button>
+  </div>
+</div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🔬</div>
+    <div>
+      <div class="logo-name">GI Scribe</div>
+      <div class="logo-sub">Procedure Listener</div>
+    </div>
+  </div>
+  <div class="status-pill" id="statusPill">
+    <div class="status-dot"></div>
+    <span id="statusText">Ready</span>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" id="tabRecord" onclick="switchTab('record')">🎙 Record</div>
+  <div class="tab" id="tabReport" onclick="switchTab('report')">📄 Report</div>
+</div>
+
+<div class="panels">
+  <div class="panel active" id="panelRecord">
+    <div class="wave-wrap"><canvas id="waveform" width="700" height="48"></canvas></div>
+    <div class="rec-controls">
+      <button class="btn btn-record" id="btnRecord" onclick="toggleRecording()">🎙 Start Recording</button>
+      <button class="btn btn-sm" onclick="clearAll()">✕</button>
+    </div>
+    <div class="timer-row" id="timerRow">⏱ <span id="timer">00:00</span></div>
+    <div class="scroll-area" id="transcriptScroll">
+      <div class="empty-state" id="transcriptEmpty">
+        <div class="icon">🎤</div>
+        <p>Tap <strong>Start Recording</strong> and speak naturally. Works with AirPods on iPhone via Safari.</p>
+      </div>
+      <div class="transcript-body" id="transcriptBody" style="display:none"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="panelReport">
+    <div class="report-actions">
+      <button class="btn btn-generate" id="btnGenerate" onclick="generateReport()" disabled>
+        <div class="spinner" id="genSpinner"></div>
+        <span id="genLabel">✦ Generate Report</span>
+      </button>
+      <button class="btn btn-copy" onclick="copyReport()">📋</button>
+    </div>
+    <div class="scroll-area" id="reportScroll">
+      <div class="empty-state" id="reportEmpty">
+        <div class="icon">📄</div>
+        <p>Record a procedure then tap <strong>Generate Report</strong> to extract structured clinical data.</p>
+      </div>
+      <div id="shimmerWrap" class="shimmer-wrap" style="display:none">
+        <div class="shimmer" style="width:35%;margin-bottom:14px"></div>
+        <div class="shimmer" style="width:90%"></div><div class="shimmer" style="width:70%"></div>
+        <div class="shimmer" style="width:85%"></div><div class="shimmer" style="width:55%;margin-bottom:18px"></div>
+        <div class="shimmer" style="width:40%;margin-bottom:14px"></div>
+        <div class="shimmer" style="width:80%"></div><div class="shimmer" style="width:65%"></div>
+      </div>
+      <div id="reportContent" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────
+let recognition=null,isRecording=false,finalText='',interimText='';
+let timerInt=null,seconds=0,audioCtx=null,analyser=null,animId=null,streamRef=null;
+
+// ─── GI TERM NORMALIZER ──────────────────────────────────
+// Maps spoken speech → proper GI/endoscopy medical terms
+const GI_FIXES=[
+  // Procedures
+  [/\b(colon oscopy|colonoscopy|cologne oscopy)\b/gi,'colonoscopy'],
+  [/\b(upper endo(?:scopy)?|esophago\s*gastro\s*duodenoscopy|EGD)\b/gi,'EGD (esophagogastroduodenoscopy)'],
+  [/\b(flexi\s*sig|flexible\s*sig(?:moidoscopy)?|sigmoidoscopy)\b/gi,'flexible sigmoidoscopy'],
+  [/\bERCP\b/gi,'ERCP'],
+  [/\b(endoscopic ultrasound|EUS)\b/gi,'EUS (endoscopic ultrasound)'],
+  [/\b(capsule endoscopy|pill\s*cam)\b/gi,'capsule endoscopy'],
+  // Prep
+  [/\b(excellent prep(?:aration)?)\b/gi,'Excellent prep (BBPS 9/9)'],
+  [/\b(good prep|adequate prep(?:aration)?)\b/gi,'Good/adequate prep (BBPS 6-8)'],
+  [/\b(fair prep(?:aration)?)\b/gi,'Fair prep (BBPS 4-5)'],
+  [/\b(poor prep|inadequate prep(?:aration)?)\b/gi,'Poor/inadequate prep (BBPS <4)'],
+  // Anatomy
+  [/\b(ileocecal valve|ileo\s*cecal valve|ICV)\b/gi,'ileocecal valve'],
+  [/\b(terminal ileum|T\.?I\.?)\b/gi,'terminal ileum'],
+  [/\bcecum\b/gi,'cecum'],
+  [/\bascending colon\b/gi,'ascending colon'],
+  [/\bhepatic flex(?:ure)?\b/gi,'hepatic flexure'],
+  [/\btransverse colon\b/gi,'transverse colon'],
+  [/\bsplenic flex(?:ure)?\b/gi,'splenic flexure'],
+  [/\bdescending colon\b/gi,'descending colon'],
+  [/\bsigmoid(?: colon)?\b/gi,'sigmoid colon'],
+  [/\brecto\s*sigmoid\b/gi,'rectosigmoid'],
+  [/\brectum\b/gi,'rectum'],
+  [/\banal canal\b/gi,'anal canal'],
+  [/\b(G\.?E\.? junction|gastroesophageal junction|Z.?line)\b/gi,'GE junction'],
+  [/\b(duodenal bulb|first part\s*(?:of\s*)?duodenum|D1)\b/gi,'duodenal bulb (D1)'],
+  [/\b(second part\s*(?:of\s*)?duodenum|D2)\b/gi,'second part of duodenum (D2)'],
+  // Polyp morphology
+  [/\bpedunculated(?: polyp)?\b/gi,'pedunculated (Paris Ip)'],
+  [/\bsessile serrated(?: lesion|adenoma)?\b/gi,'sessile serrated lesion (SSL)'],
+  [/\bSSA\b/g,'sessile serrated lesion (SSL)'],
+  [/\bSSL\b/g,'sessile serrated lesion (SSL)'],
+  [/\bsessile(?: polyp)?\b/gi,'sessile (Paris Is)'],
+  [/\bflat(?: polyp| lesion| adenoma)?\b/gi,'flat (Paris IIa)'],
+  [/\btubulovillous adenoma\b/gi,'tubulovillous adenoma'],
+  [/\btubular adenoma\b/gi,'tubular adenoma'],
+  [/\bvillous adenoma\b/gi,'villous adenoma'],
+  [/\bhyperplastic polyp\b/gi,'hyperplastic polyp'],
+  [/\btraditional serrated adenoma\b/gi,'traditional serrated adenoma (TSA)'],
+  [/\bdiminutive(?: polyp)?\b/gi,'diminutive polyp (<5mm)'],
+  // Interventions
+  [/\b(cold snare polypectomy|CSP)\b/gi,'cold snare polypectomy (CSP)'],
+  [/\b(hot snare polypectomy|HSP)\b/gi,'hot snare polypectomy (HSP)'],
+  [/\bcold forceps biopsy\b/gi,'cold forceps biopsy'],
+  [/\b(endoscopic mucosal resection|EMR)\b/gi,'EMR (endoscopic mucosal resection)'],
+  [/\b(endoscopic submucosal dissection|ESD)\b/gi,'ESD (endoscopic submucosal dissection)'],
+  [/\b(argon plasma coagulation|APC)\b/gi,'APC (argon plasma coagulation)'],
+  [/\b(hemo\s*clip|clip placement|endo\s*clip)\b/gi,'hemoclip placement'],
+  [/\b(variceal banding|band ligation|EVL)\b/gi,'endoscopic variceal ligation (EVL)'],
+  [/\b(epinephrine injection|injection therapy)\b/gi,'injection therapy (epinephrine)'],
+  [/\b(stricture dilation|balloon dilation|esophageal dilation)\b/gi,'endoscopic dilation'],
+  [/\b(stent placement|SEMS)\b/gi,'stent placement (SEMS)'],
+  [/\b(india ink|submucosal tattoo|spot tattoo)\b/gi,'submucosal tattoo'],
+  [/\b(submucosal injection|saline lift)\b/gi,'submucosal injection/lift'],
+  [/\b(brush cytology)\b/gi,'brush cytology'],
+  // Mucosal findings
+  [/\berythematous mucosa\b/gi,'erythema'],
+  [/\bfriable mucosa\b/gi,'friability'],
+  [/\bedematous mucosa\b/gi,'edema'],
+  [/\bgranular mucosa\b/gi,'granularity'],
+  [/\bnormal(?:ly)?(?:\s*appearing)? mucosa\b/gi,'normal mucosa'],
+  [/\bunremarkable mucosa\b/gi,'normal mucosa'],
+  [/\bloss of vascular pattern\b/gi,'loss of vascular pattern'],
+  // Conditions
+  [/\bdiverticulosis\b/gi,'diverticulosis'],
+  [/\bdiverticulitis\b/gi,'diverticulitis'],
+  [/\binternal hemorrhoids?\b/gi,'internal hemorrhoids'],
+  [/\bexternal hemorrhoids?\b/gi,'external hemorrhoids'],
+  [/\bhemorrhoids?\b/gi,'hemorrhoids'],
+  [/\banal fissure\b/gi,'anal fissure'],
+  [/\bBarrett'?s?(?: esophagus)?\b/gi,"Barrett's esophagus"],
+  [/\bhiatal hernia\b/gi,'hiatal hernia'],
+  [/\bgastritis\b/gi,'gastritis'],
+  [/\bduodenitis\b/gi,'duodenitis'],
+  [/\besophagitis\b/gi,'esophagitis'],
+  [/\b(reflux esophagitis|GERD)\b/gi,'reflux esophagitis (GERD)'],
+  [/\b(eosinophilic esophagitis|EoE)\b/gi,'eosinophilic esophagitis (EoE)'],
+  [/\bCrohn'?s?(?: disease)?\b/gi,"Crohn's disease"],
+  [/\bulcerative colitis\b/gi,'ulcerative colitis'],
+  [/\b(IBD|inflammatory bowel disease)\b/gi,'inflammatory bowel disease (IBD)'],
+  [/\bischemic colitis\b/gi,'ischemic colitis'],
+  [/\bmicroscopic colitis\b/gi,'microscopic colitis'],
+  [/\b(angiodysplasia|vascular ectasia|AVM)\b/gi,'angiodysplasia'],
+  [/\b(Dieulafoy'?s? lesion|Dieulafoy)\b/gi,"Dieulafoy's lesion"],
+  [/\b(GAVE|gastric antral vascular ectasia|watermelon stomach)\b/gi,'GAVE (gastric antral vascular ectasia)'],
+  [/\bMallory.?Weiss(?: tear)?\b/gi,'Mallory-Weiss tear'],
+  [/\b(esophageal varices|gastric varices|varices)\b/gi,'varices'],
+  [/\b(portal hypertensive gastropathy|PHG)\b/gi,'portal hypertensive gastropathy (PHG)'],
+  [/\bH\.?\s*pylori\b/gi,'H. pylori'],
+  [/\b(rapid urease test|CLO test)\b/gi,'rapid urease test (CLO)'],
+  [/\bceliac disease\b/gi,'celiac disease'],
+  [/\bmelanosis coli\b/gi,'melanosis coli'],
+  // Imaging / technique
+  [/\b(narrow band imaging|NBI)\b/gi,'NBI (narrow band imaging)'],
+  [/\bchromoendoscopy\b/gi,'chromoendoscopy'],
+  [/\bCO2 insufflation\b/gi,'CO₂ insufflation'],
+  [/\bwater exchange\b/gi,'water exchange technique'],
+  // Exam quality
+  [/\bcecal intubation\b/gi,'cecal intubation achieved'],
+  [/\bterminal ileum intubation\b/gi,'terminal ileum intubated'],
+  [/\bcomplete colonoscopy\b/gi,'complete examination'],
+  [/\bincomplete colonoscopy\b/gi,'incomplete examination'],
+  // Pathology
+  [/\b(sent to pathology|submitted to pathology|sent to path)\b/gi,'submitted to pathology'],
+  [/\blow.?grade dysplasia\b/gi,'low-grade dysplasia (LGD)'],
+  [/\bhigh.?grade dysplasia\b/gi,'high-grade dysplasia (HGD)'],
+  [/\badenocarcinoma\b/gi,'adenocarcinoma'],
+  [/\b(neuroendocrine tumor|carcinoid tumor|NET)\b/gi,'neuroendocrine tumor (NET)'],
+  // Complications
+  [/\bno complications?\b/gi,'None'],
+  [/\buncomplicated\b/gi,'None'],
+];
+
+function normalizeGI(text){
+  let out=text;
+  for(const [p,r] of GI_FIXES) out=out.replace(p,r);
+  return out;
+}
+
+// ─── REPORT EXTRACTOR (client-side NLP) ─────────────────
+function extractReport(rawText){
+  const text=normalizeGI(rawText);
+  const t=text.toLowerCase();
+
+  const R={
+    patient:{name:null,dob:null,mrn:null,referring:null},
+    procedure:{type:null,date:null,indication:null,prep:null,instrument:null,extent:null,withdrawal:null},
+    findings:{mucosa:null,polyps:[],diverticula:null,hemorrhoids:null,inflammation:null,vascular:null,other:null},
+    interventions:[],specimens:[],assessment:null,recommendations:null,complications:'None noted',physician:null
+  };
+
+  // Patient
+  let m;
+  if((m=text.match(/patient(?:'s)? name[:\s]+([A-Z][a-z]+ [A-Z][a-z]+)/))) R.patient.name=m[1];
+  if((m=text.match(/(?:date of birth|D\.?O\.?B\.?|born)[:\s]+([0-9\/\-\.]+)/i))) R.patient.dob=m[1];
+  if((m=text.match(/(?:MRN|medical record number)[:\s#]+([A-Za-z0-9\-]+)/i))) R.patient.mrn=m[1];
+  if((m=text.match(/(?:referred by|referring physician)[:\s]+([A-Z][a-z]+(?: [A-Z][a-z]+)?)/i))) R.patient.referring=m[1];
+
+  // Procedure type
+  const ptypes=[['colonoscopy','Colonoscopy'],['egd','EGD (esophagogastroduodenoscopy)'],
+    ['upper endoscopy','EGD (esophagogastroduodenoscopy)'],['esophagogastroduodenoscopy','EGD (esophagogastroduodenoscopy)'],
+    ['flexible sigmoidoscopy','Flexible sigmoidoscopy'],['sigmoidoscopy','Flexible sigmoidoscopy'],
+    ['ercp','ERCP'],['eus','EUS (endoscopic ultrasound)'],
+    ['capsule endoscopy','Capsule endoscopy'],['enteroscopy','Enteroscopy']];
+  for(const[k,v] of ptypes){if(t.includes(k)){R.procedure.type=v;break;}}
+  if(!R.procedure.type) R.procedure.type='Endoscopic procedure';
+
+  // Date
+  if((m=text.match(/\b(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})\b/))) R.procedure.date=m[1];
+  else R.procedure.date=new Date().toLocaleDateString('en-US');
+
+  // Indication
+  const inds=[['screening','Colorectal cancer screening'],['surveillance','Surveillance (prior polyps/IBD)'],
+    ['rectal bleeding','Hematochezia / rectal bleeding'],['hematochezia','Hematochezia'],
+    ['melena','Melena / upper GI bleeding'],['iron deficiency','Iron deficiency anemia'],
+    ['anemia','Anemia evaluation'],['abdominal pain','Abdominal pain'],
+    ['change in bowel','Change in bowel habits'],['diarrhea','Diarrhea / altered bowel habits'],
+    ['constipation','Constipation'],['weight loss','Unintentional weight loss'],
+    ['dysphagia','Dysphagia'],['reflux','GERD / reflux evaluation'],
+    ['heartburn','GERD / heartburn'],['nausea','Nausea / vomiting'],
+    ["barrett's",'Barrett\'s surveillance'],['h. pylori','H. pylori evaluation'],
+    ['celiac','Celiac disease evaluation'],['ibd','IBD evaluation / surveillance'],
+    ['polyp','Polyp surveillance'],['follow','Follow-up / surveillance']];
+  for(const[k,v] of inds){if(t.includes(k)){R.procedure.indication=v;break;}}
+
+  // Prep
+  if(t.includes('excellent prep')) R.procedure.prep='Excellent (BBPS 9/9)';
+  else if(t.includes('good prep')||t.includes('adequate prep')) R.procedure.prep='Good / Adequate (BBPS 6-8)';
+  else if(t.includes('fair prep')) R.procedure.prep='Fair (BBPS 4-5)';
+  else if(t.includes('poor prep')||t.includes('inadequate prep')) R.procedure.prep='Poor / Inadequate (BBPS <4)';
+  else if(t.includes('prep')) R.procedure.prep='Adequate';
+
+  // Extent
+  const extOrder=['terminal ileum','cecum','ascending colon','hepatic flexure','transverse colon',
+    'splenic flexure','descending colon','sigmoid colon','rectosigmoid','rectum',
+    'second part of duodenum','duodenal bulb (d1)'];
+  let deepest=null;
+  for(const loc of extOrder){if(t.includes(loc)) deepest=loc;}
+  if(deepest) R.procedure.extent='To '+deepest;
+
+  // Withdrawal time
+  if((m=text.match(/(\d+)\s*min(?:ute)?s?\s*withdrawal/i)||text.match(/withdrawal(?:\s*time)?[:\s]+(\d+)\s*min/i)))
+    R.procedure.withdrawal=m[1]+' minutes';
+
+  // Mucosa
+  const mu=[];
+  if(t.includes('normal mucosa')) mu.push('Normal');
+  if(t.includes('erythema')) mu.push('Erythema');
+  if(t.includes('friabilit')) mu.push('Friability');
+  if(t.includes('edema')) mu.push('Edema');
+  if(t.includes('granularit')) mu.push('Granularity');
+  if(t.includes('ulceration')) mu.push('Ulceration');
+  if(t.includes('erosion')) mu.push('Erosions');
+  if(t.includes('loss of vascular pattern')) mu.push('Loss of vascular pattern');
+  if(t.includes('pseudopolyp')) mu.push('Pseudopolyps');
+  R.findings.mucosa=mu.length?mu.join(', '):'Grossly normal';
+
+  // Polyps — parse sentence-by-sentence
+  const polyLocations=['terminal ileum','cecum','ascending colon','hepatic flexure','transverse colon',
+    'splenic flexure','descending colon','sigmoid colon','rectosigmoid','rectum','anal canal',
+    'esophagus','ge junction','stomach','gastric antrum','gastric body','fundus',
+    'pylorus','duodenal bulb','second part of duodenum'];
+  const sentences=text.split(/[.;!\n]+/);
+  for(const sent of sentences){
+    const s=sent.toLowerCase();
+    if(!/polyp|adenoma|lesion|mass|nodule|sessile|pedunculated|serrated|hyperplastic/i.test(s)) continue;
+    let loc=null,size=null,morph=null,interv=null;
+    for(const l of polyLocations){if(s.includes(l)){loc=l;break;}}
+    if((m=sent.match(/(\d+)\s*(?:mm|cm)/i))) size=m[0];
+    if(/pedunculated/i.test(s)) morph='Pedunculated (Paris Ip)';
+    else if(/sessile serrated|ssl/i.test(s)) morph='Sessile serrated lesion (SSL)';
+    else if(/sessile/i.test(s)) morph='Sessile (Paris Is)';
+    else if(/flat/i.test(s)) morph='Flat (Paris IIa)';
+    else if(/tubulovillous/i.test(s)) morph='Tubulovillous adenoma';
+    else if(/tubular/i.test(s)) morph='Tubular adenoma';
+    else if(/villous/i.test(s)) morph='Villous adenoma';
+    else if(/hyperplastic/i.test(s)) morph='Hyperplastic polyp';
+    if(/cold snare|csp/i.test(s)) interv='Cold snare polypectomy';
+    else if(/hot snare|hsp/i.test(s)) interv='Hot snare polypectomy';
+    else if(/emr/i.test(s)) interv='EMR';
+    else if(/biopsi/i.test(s)) interv='Biopsy';
+    else if(/removed|resected|excised/i.test(s)) interv='Removed';
+    else if(/apc|ablat/i.test(s)) interv='Ablation';
+    if(loc||size||morph){
+      R.findings.polyps.push({
+        location:loc||'location unspecified',
+        size:size||'size not specified',
+        morphology:morph||'morphology not described',
+        intervention:interv||null
+      });
+    }
+  }
+
+  // Diverticula
+  if(t.includes('diverticul')){
+    const dl=[];
+    if(t.includes('sigmoid')&&t.includes('diverticul')) dl.push('sigmoid');
+    if(t.includes('descending')&&t.includes('diverticul')) dl.push('descending colon');
+    if(t.includes('pan')&&t.includes('diverticul')) dl.push('pan-colonic');
+    R.findings.diverticula=dl.length?'Diverticulosis — '+dl.join(', '):'Diverticulosis present';
+  }
+
+  // Hemorrhoids
+  if(t.includes('internal hemorrhoid')) R.findings.hemorrhoids='Internal hemorrhoids';
+  else if(t.includes('external hemorrhoid')) R.findings.hemorrhoids='External hemorrhoids';
+  else if(t.includes('hemorrhoid')) R.findings.hemorrhoids='Hemorrhoids';
+
+  // Inflammation
+  const inf=[];
+  if(t.includes('ulcerative colitis')) inf.push('Ulcerative colitis');
+  if(t.includes("crohn's")) inf.push("Crohn's disease");
+  if(t.includes('gastritis')) inf.push('Gastritis');
+  if(t.includes('esophagitis')&&!t.includes('eosinophilic')) inf.push('Esophagitis');
+  if(t.includes('eosinophilic esophagitis')) inf.push('Eosinophilic esophagitis (EoE)');
+  if(t.includes('duodenitis')) inf.push('Duodenitis');
+  if(t.includes('ischemic colitis')) inf.push('Ischemic colitis');
+  if(t.includes('microscopic colitis')) inf.push('Microscopic colitis');
+  if(inf.length) R.findings.inflammation=inf.join('; ');
+
+  // Vascular
+  const vc=[];
+  if(t.includes('angiodysplasia')) vc.push('Angiodysplasia');
+  if(t.includes('varices')) vc.push('Varices');
+  if(t.includes("dieulafoy's")) vc.push("Dieulafoy's lesion");
+  if(t.includes('gave')) vc.push('GAVE');
+  if(t.includes('portal hypertensive gastropathy')) vc.push('Portal hypertensive gastropathy');
+  if(t.includes('mallory-weiss')) vc.push('Mallory-Weiss tear');
+  if(vc.length) R.findings.vascular=vc.join('; ');
+
+  // Other findings
+  const oth=[];
+  if(t.includes("barrett's esophagus")) oth.push("Barrett's esophagus");
+  if(t.includes('hiatal hernia')) oth.push('Hiatal hernia');
+  if(t.includes('h. pylori')) oth.push('H. pylori — test/treatment per protocol');
+  if(t.includes('celiac')) oth.push('Celiac disease — biopsies taken');
+  if(t.includes('melanosis coli')) oth.push('Melanosis coli');
+  if(t.includes('subepithelial')||t.includes('submucosal lesion')) oth.push('Subepithelial lesion — further evaluation needed');
+  if(oth.length) R.findings.other=oth.join('; ');
+
+  // Interventions
+  const iv=new Set();
+  if(t.includes('cold snare polypectomy')||t.includes('csp')) iv.add('Cold snare polypectomy (CSP)');
+  if(t.includes('hot snare polypectomy')||t.includes('hsp')) iv.add('Hot snare polypectomy (HSP)');
+  if(t.includes('emr (endoscopic mucosal resection)')) iv.add('EMR (endoscopic mucosal resection)');
+  if(t.includes('esd (endoscopic submucosal dissection)')) iv.add('ESD (endoscopic submucosal dissection)');
+  if(t.includes('apc (argon plasma coagulation)')) iv.add('APC (argon plasma coagulation)');
+  if(t.includes('hemoclip')) iv.add('Hemoclip placement');
+  if(t.includes('endoscopic variceal ligation')) iv.add('Endoscopic variceal ligation (EVL)');
+  if(t.includes('injection therapy')) iv.add('Injection therapy');
+  if(t.includes('endoscopic dilation')) iv.add('Endoscopic dilation');
+  if(t.includes('stent')) iv.add('Stent placement');
+  if(t.includes('submucosal tattoo')) iv.add('Submucosal tattoo placement');
+  if(t.includes('cold forceps biopsy')) iv.add('Cold forceps biopsy');
+  else if((t.includes('biopsy')||t.includes('biopsies'))&&iv.size===0) iv.add('Forceps biopsy');
+  if(t.includes('brush cytology')) iv.add('Brush cytology');
+  R.interventions=[...iv];
+
+  // Specimens
+  if(R.interventions.length||t.includes('pathology')){
+    R.specimens=['Tissue submitted to pathology — await final histology report'];
+  }
+
+  // Complications
+  if(t.includes('none')||t.includes('uncomplicated')) R.complications='None';
+  else if(t.includes('bleeding')) R.complications='Bleeding — managed endoscopically';
+  else if(t.includes('perforation')) R.complications='Perforation — see procedure note';
+  else if(t.includes('post-polypectomy syndrome')) R.complications='Post-polypectomy syndrome';
+
+  // Assessment
+  const ap=[];
+  ap.push(R.procedure.type||'Endoscopic procedure');
+  if(R.findings.polyps.length) ap.push(R.findings.polyps.length+' polyp(s) identified and removed');
+  if(R.findings.diverticula) ap.push('Diverticulosis');
+  if(R.findings.inflammation) ap.push(R.findings.inflammation);
+  if(R.findings.vascular) ap.push(R.findings.vascular);
+  if(R.findings.other) ap.push(R.findings.other);
+  if(ap.length===1) ap.push('No significant pathology identified');
+  R.assessment=ap.join('. ');
+
+  // Recommendations
+  const rec=[];
+  if(R.findings.polyps.length){
+    const adv=R.findings.polyps.some(p=>/villous|high.grade|HGD|serrated|ssl/i.test(p.morphology));
+    if(adv) rec.push('Repeat colonoscopy in 3 years (advanced adenoma/SSL)');
+    else rec.push('Repeat colonoscopy in 3-5 years (per ACG/USMSTF guidelines)');
+  }
+  if(t.includes('h. pylori')) rec.push('H. pylori eradication + confirmation test-of-cure');
+  if(t.includes("barrett's")) rec.push("Barrett's surveillance per ACG guidelines");
+  if(t.includes('eosinophilic esophagitis')) rec.push('EoE management — dietary/PPI/budesonide therapy');
+  if(t.includes('varices')) rec.push('Variceal re-evaluation in 1-2 years; portal hypertension management');
+  if(t.includes('celiac')) rec.push('Gluten-free diet; serology and follow-up endoscopy per protocol');
+  if(R.specimens.length) rec.push('Await pathology results — follow-up per histology');
+  if(!rec.length) rec.push('Clinical follow-up as clinically indicated');
+  R.recommendations=rec.join('. ');
+
+  // Physician
+  if((m=text.match(/(?:Dr\.?|performed by|endoscopist)[:\s]+([A-Z][a-z]+(?: [A-Z][a-z]+)?)/i)))
+    R.physician=m[1];
+
+  return R;
+}
+
+// ─── SPEECH RECOGNITION ──────────────────────────────────
+function initRecognition(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){showToast('Use Safari on iOS 14.5+ for speech recognition','error');return null;}
+  const r=new SR();
+  r.continuous=true; r.interimResults=true; r.lang='en-US';
+  r.onstart=()=>{isRecording=true;updateUI();};
+  r.onresult=(e)=>{
+    let interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const txt=e.results[i][0].transcript;
+      if(e.results[i].isFinal) finalText+=txt+' '; else interim+=txt;
+    }
+    interimText=interim; renderTranscript();
+    document.getElementById('btnGenerate').disabled=false;
+  };
+  r.onerror=(e)=>{
+    if(e.error==='not-allowed'){document.getElementById('permModal').classList.add('show');stopRecording();}
+    else if(e.error==='audio-capture'){showToast('No mic — connect AirPods first','error');stopRecording();}
+  };
+  // iOS auto-stops after silence — restart loop
+  r.onend=()=>{if(isRecording) setTimeout(()=>{if(isRecording&&recognition){try{recognition.start();}catch(e){}}},200);};
+  return r;
+}
+
+async function startRecording(){
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    streamRef=stream; startWaveform(stream);
+  }catch(e){document.getElementById('permModal').classList.add('show');return;}
+  if(!recognition) recognition=initRecognition();
+  if(!recognition) return;
+  try{recognition.start();startTimer();}catch(e){showToast('Could not start recording','error');}
+}
+
+function stopRecording(){
+  isRecording=false;
+  if(recognition){try{recognition.stop();}catch(e){}}
+  stopWaveform(); stopTimer();
+  interimText=''; renderTranscript(); updateUI();
+  // Keep Generate button enabled if we have transcript
+  if(finalText.trim()) document.getElementById('btnGenerate').disabled=false;
+}
+
+function toggleRecording(){if(isRecording) stopRecording(); else startRecording();}
+
+// ─── WAVEFORM ─────────────────────────────────────────────
+function startWaveform(stream){
+  try{
+    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    analyser=audioCtx.createAnalyser(); analyser.fftSize=128;
+    audioCtx.createMediaStreamSource(stream).connect(analyser); drawWave();
+  }catch(e){}
+}
+function drawWave(){
+  const cv=document.getElementById('waveform'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  (function frame(){
+    animId=requestAnimationFrame(frame);
+    const buf=new Uint8Array(analyser?analyser.frequencyBinCount:32);
+    if(analyser) analyser.getByteFrequencyData(buf);
+    ctx.clearRect(0,0,W,H);
+    const bw=(W/buf.length)*2.2;let x=0;
+    for(let i=0;i<buf.length;i++){
+      const v=buf[i]/255,h=v*H*.9;
+      ctx.fillStyle=isRecording?`rgba(0,${Math.floor(190+v*65)},${Math.floor(130+v*80)},.85)`:'rgba(50,70,90,.25)';
+      ctx.fillRect(x,H-h,bw-1,h); x+=bw;
+    }
+  })();
+}
+function stopWaveform(){
+  if(animId) cancelAnimationFrame(animId);
+  if(streamRef) streamRef.getTracks().forEach(t=>t.stop());
+  if(audioCtx){try{audioCtx.close();}catch(e){}}
+  analyser=null;audioCtx=null;streamRef=null;
+  const cv=document.getElementById('waveform'),ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.strokeStyle='rgba(50,70,90,.25)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,cv.height/2);ctx.lineTo(cv.width,cv.height/2);ctx.stroke();
+}
+
+// ─── TIMER ────────────────────────────────────────────────
+function startTimer(){
+  seconds=0; document.getElementById('timerRow').classList.add('active');
+  timerInt=setInterval(()=>{
+    seconds++;
+    const m=String(Math.floor(seconds/60)).padStart(2,'0'),s=String(seconds%60).padStart(2,'0');
+    document.getElementById('timer').textContent=`${m}:${s}`;
+  },1000);
+}
+function stopTimer(){clearInterval(timerInt);document.getElementById('timerRow').classList.remove('active');}
+
+// ─── GENERATE REPORT ─────────────────────────────────────
+function generateReport(){
+  const text=finalText.trim();
+  if(!text){showToast('No transcript yet — record first','error');return;}
+
+  // Show loading state
+  document.getElementById('btnGenerate').disabled=true;
+  document.getElementById('genSpinner').classList.add('active');
+  document.getElementById('genLabel').textContent='Extracting…';
+  document.getElementById('reportEmpty').style.display='none';
+  document.getElementById('reportContent').style.display='none';
+  document.getElementById('shimmerWrap').style.display='block';
+  switchTab('report');
+
+  setTimeout(()=>{
+    try{
+      const R=extractReport(text);
+      renderReport(R, text);
+      showToast('Report generated ✓','success');
+    }catch(err){
+      console.error('Report extraction error:', err);
+      // Even on error, render what we have with the raw transcript
+      renderFallbackReport(text);
+      showToast('Report generated (basic mode)','success');
+    }finally{
+      document.getElementById('shimmerWrap').style.display='none';
+      document.getElementById('btnGenerate').disabled=false;
+      document.getElementById('genSpinner').classList.remove('active');
+      document.getElementById('genLabel').textContent='↺ Re-generate';
+    }
+  },400);
+}
+
+// ─── FALLBACK — always shows something ───────────────────
+function renderFallbackReport(rawText){
+  const el=document.getElementById('reportContent');
+  el.style.display='block';
+  el.innerHTML=`
+    <div class="report-section">
+      <div class="section-title">Procedure</div>
+      <div class="report-field"><div class="field-label">Type</div><div class="field-value">Endoscopic procedure</div></div>
+      <div class="report-field"><div class="field-label">Date</div><div class="field-value">${new Date().toLocaleDateString('en-US')}</div></div>
+    </div>
+    <div class="report-section">
+      <div class="section-title">Transcript (Raw)</div>
+      <div class="report-field"><div class="field-value" style="white-space:pre-wrap;line-height:1.7">${rawText}</div></div>
+    </div>
+    <div class="report-section">
+      <div class="section-title">Assessment & Plan</div>
+      <div class="report-field"><div class="field-label">Complications</div><div class="field-value">None noted</div></div>
+    </div>`;
+}
+
+// ─── RENDER REPORT ────────────────────────────────────────
+function renderReport(R, rawText){
+  const el=document.getElementById('reportContent');
+  el.style.display='block';
+
+  // Helper: always returns a field div (shows "Not documented" if empty)
+  const fld=(label,val,required=false)=>{
+    const display = (val && val.trim()) ? val : (required ? '<span style="color:var(--text-muted)">Not documented</span>' : null);
+    if(!display) return '';
+    return `<div class="report-field"><div class="field-label">${label}</div><div class="field-value">${display}</div></div>`;
+  };
+
+  // Helper: section always renders if it has required fields
+  const sec=(title,body)=>`<div class="report-section"><div class="section-title">${title}</div>${body}</div>`;
+
+  let html='';
+
+  // ── Patient (only if any data found) ──
+  const p=R.patient;
+  const patBody=[fld('Name',p.name),fld('DOB',p.dob),fld('MRN',p.mrn),fld('Referring Physician',p.referring)].join('');
+  if(patBody) html+=sec('Patient', patBody);
+
+  // ── Procedure (always shown) ──
+  html+=sec('Procedure',
+    fld('Type', R.procedure.type||'Endoscopic procedure', true)+
+    fld('Date', R.procedure.date||new Date().toLocaleDateString('en-US'), true)+
+    fld('Indication', R.procedure.indication)+
+    fld('Bowel Prep Quality', R.procedure.prep)+
+    fld('Instrument', R.procedure.instrument)+
+    fld('Extent of Examination', R.procedure.extent)+
+    fld('Withdrawal Time', R.procedure.withdrawal)
+  );
+
+  // ── Findings (always shown) ──
+  let findBody = fld('Mucosa', R.findings.mucosa||'See transcript', true);
+  findBody += fld('Diverticula', R.findings.diverticula);
+  findBody += fld('Hemorrhoids', R.findings.hemorrhoids);
+  findBody += fld('Inflammation / IBD', R.findings.inflammation);
+  findBody += fld('Vascular Findings', R.findings.vascular);
+  findBody += fld('Other Findings', R.findings.other);
+
+  if(R.findings.polyps && R.findings.polyps.length>0){
+    const tags=R.findings.polyps.map((p,i)=>{
+      const parts=[p.location,p.size,p.morphology].filter(x=>x&&!/unspecified|not specified/i.test(x));
+      const iv=p.intervention?` — ${p.intervention}`:'';
+      return `<span class="tag tag-finding">Polyp ${i+1}: ${parts.join(' · ')}${iv}</span>`;
+    }).join('');
+    findBody+=`<div class="report-field"><div class="field-label">Polyps (${R.findings.polyps.length} identified)</div><div style="margin-top:6px">${tags}</div></div>`;
+  } else {
+    findBody+=fld('Polyps','None identified');
+  }
+  html+=sec('Findings', findBody);
+
+  // ── Interventions ──
+  if(R.interventions && R.interventions.length>0){
+    const tags=R.interventions.map(i=>`<span class="tag tag-finding">${i}</span>`).join('');
+    html+=sec('Interventions Performed',`<div style="margin-top:4px">${tags}</div>`);
+  }
+
+  // ── Specimens ──
+  if(R.specimens && R.specimens.length>0){
+    html+=sec('Specimens', R.specimens.map((s,i)=>fld(`Specimen ${i+1}`,s)).join(''));
+  }
+
+  // ── Assessment & Plan (always shown) ──
+  html+=sec('Assessment & Plan',
+    fld('Assessment', R.assessment, true)+
+    fld('Recommendations', R.recommendations, true)+
+    fld('Complications', R.complications||'None', true)+
+    fld('Performing Physician', R.physician)
+  );
+
+  // ── Raw Transcript (collapsed at bottom) ──
+  html+=`<div class="report-section">
+    <div class="section-title" style="cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+      Raw Transcript ▾
+    </div>
+    <div style="display:none">
+      <div class="report-field"><div class="field-value" style="white-space:pre-wrap;line-height:1.7;font-size:11px;color:var(--text-dim)">${rawText}</div></div>
+    </div>
+  </div>`;
+  el.innerHTML=html;
+  setTimeout(()=>{el.querySelectorAll('.field-value').forEach(e=>{if(e.textContent.trim()){e.classList.add('glow');setTimeout(()=>e.classList.remove('glow'),2500);}});},100);
+  document.getElementById('reportScroll').scrollTop=0;
+  document.getElementById('reportEmpty').style.display='none';
+}
+
+// ─── COPY ─────────────────────────────────────────────────
+function copyReport(){
+  const el=document.getElementById('reportContent');
+  if(!el.textContent.trim()){showToast('No report yet','error');return;}
+  let txt='GI PROCEDURE REPORT\n'+'═'.repeat(36)+'\n\n';
+  el.querySelectorAll('.report-section').forEach(sec=>{
+    const t=sec.querySelector('.section-title')?.textContent;
+    txt+=`${t}\n${'─'.repeat(t?.length||20)}\n`;
+    sec.querySelectorAll('.report-field').forEach(f=>{
+      const l=f.querySelector('.field-label')?.textContent;
+      const v=f.querySelector('.field-value')?.textContent?.trim();
+      if(v&&v!=='—') txt+=`${l}: ${v}\n`;
+    });
+    txt+='\n';
+  });
+  navigator.clipboard.writeText(txt).then(()=>showToast('Copied ✓','success')).catch(()=>showToast('Copy failed','error'));
+}
+
+// ─── TABS ─────────────────────────────────────────────────
+function switchTab(tab){
+  document.getElementById('tabRecord').classList.toggle('active',tab==='record');
+  document.getElementById('tabReport').classList.toggle('active',tab==='report');
+  document.getElementById('panelRecord').classList.toggle('active',tab==='record');
+  document.getElementById('panelReport').classList.toggle('active',tab==='report');
+}
+
+// ─── UI ───────────────────────────────────────────────────
+function updateUI(){
+  const btn=document.getElementById('btnRecord'),pill=document.getElementById('statusPill');
+  if(isRecording){btn.textContent='⏹ Stop Recording';btn.classList.add('recording');pill.classList.add('recording');document.getElementById('statusText').textContent='Recording';}
+  else{btn.textContent='🎙 Start Recording';btn.classList.remove('recording');pill.classList.remove('recording');document.getElementById('statusText').textContent='Ready';}
+}
+function renderTranscript(){
+  const body=document.getElementById('transcriptBody'),empty=document.getElementById('transcriptEmpty');
+  if(!finalText&&!interimText) return;
+  empty.style.display='none'; body.style.display='block';
+  body.innerHTML=finalText+(interimText?`<span class="interim">${interimText}</span>`:'');
+  document.getElementById('transcriptScroll').scrollTop=99999;
+}
+function clearAll(){
+  stopRecording(); finalText=''; interimText='';
+  document.getElementById('transcriptBody').style.display='none';
+  document.getElementById('transcriptEmpty').style.display='flex';
+  document.getElementById('reportContent').style.display='none';
+  document.getElementById('reportEmpty').style.display='flex';
+  document.getElementById('shimmerWrap').style.display='none';
+  document.getElementById('btnGenerate').disabled=true;
+  document.getElementById('timer').textContent='00:00';
+}
+function dismissModal(){document.getElementById('permModal').classList.remove('show');}
+function showToast(msg,type='info'){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=`toast show ${type}`;
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// INIT
+window.addEventListener('load',()=>{
+  const cv=document.getElementById('waveform'),ctx=cv.getContext('2d');
+  ctx.strokeStyle='rgba(50,70,90,.25)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,cv.height/2);ctx.lineTo(cv.width,cv.height/2);ctx.stroke();
+});
+</script>
+</body>
+</html>
