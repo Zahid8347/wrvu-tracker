@@ -260,6 +260,9 @@ let state = {
   showProcGroup: true,
   showEMGroup: false,
   searchQuery: "",
+  showPdfModal: false,
+  pdfFrom: "",
+  pdfTo: "",
 };
 
 function todayStr(){
@@ -341,6 +344,7 @@ function buildApp(){
 
   return `
   ${showClear ? buildClearModal() : ""}
+  ${state.showPdfModal ? buildPdfModal() : ""}
   ${editing   ? buildEditModal(editing,showProcGroup,showEMGroup) : ""}
   ${state.showSheets ? buildSheetsModal() : ""}
 
@@ -353,7 +357,7 @@ function buildApp(){
     <div class="hdr-btns">
       <button class="hdr-btn" onclick="exportCSV()">⬇ Export CSV</button>
       <button class="hdr-btn" onclick="document.getElementById('importFile').click()">⬆ Import CSV</button>
-      <button class="hdr-btn" onclick="exportPDF()">🖨 Print PDF</button>
+      <button class="hdr-btn" onclick="st({showPdfModal:true,pdfFrom:state.pdfFrom||'',pdfTo:state.pdfTo||''})">🖨 Print PDF</button>
       <button class="hdr-btn" onclick="st({showSheets:true})">📊 Google Sheets</button>
       <button class="hdr-btn danger" onclick="st({showClear:true})">🗑 Clear All</button>
       <input type="file" id="importFile" accept=".csv" style="display:none" onchange="importCSV(this)"/>
@@ -680,11 +684,12 @@ function buildSummary(cases,byMonth,monthKeys,grandTotal,allProcs){
     })() : ''}
   </div>
 
-  <!-- Monthly wRVU breakdown -->
+  <!-- Year to Date wRVU breakdown -->
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:0 2px">
-    <div style="font-size:12px;font-weight:700;color:#374151">Monthly wRVU Breakdown</div>
+    <div style="font-size:12px;font-weight:700;color:#374151">Year to Date wRVU — ${thisYear}</div>
+    <div style="font-size:11px;color:#6b7280">${ytdWRVU.toFixed(2)} total</div>
   </div>
-  ${chartKeys.slice().reverse().map(mk=>{
+  ${chartKeys.slice().reverse().filter(mk=>mk.startsWith(thisYear)).map(mk=>{
     const v = byMonth[mk].reduce((s,c)=>s+caseWRVU(c),0);
     const isThisMonth = mk===thisMonth;
     const mCases = byMonth[mk];
@@ -694,10 +699,11 @@ function buildSummary(cases,byMonth,monthKeys,grandTotal,allProcs){
       byCatMonth[cat]=(byCatMonth[cat]||0)+(cpt?.wrvu||0);
     }));
     const catsPresent = ALL_CATS.filter(cat=>byCatMonth[cat]);
+    const ytdPct = ytdWRVU>0 ? Math.max(Math.round((v/ytdWRVU)*100),1) : 0;
     return `<div class="card" style="padding:12px 14px;margin-bottom:8px;${isThisMonth?'border:2px solid #2563eb':''}">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${catsPresent.length?'10':'0'}px">
         <div style="font-size:13px;font-weight:800;color:${isThisMonth?'#1e3a5f':'#374151'}">${monthLabel(mk)}${isThisMonth?' <span style="font-size:9px;background:#dbeafe;color:#1d4ed8;border-radius:4px;padding:1px 5px;font-weight:700;margin-left:4px">current</span>':''}</div>
-        <div style="font-size:14px;font-weight:900;color:${isThisMonth?'#2563eb':'#1e3a5f'}">${v.toFixed(2)} <span style="font-size:9px;font-weight:500;color:#9ca3af">wRVU</span></div>
+        <div style="font-size:14px;font-weight:900;color:${isThisMonth?'#2563eb':'#1e3a5f'}">${v.toFixed(2)} <span style="font-size:9px;font-weight:500;color:#9ca3af">wRVU · ${ytdPct}% of YTD</span></div>
       </div>
       ${catsPresent.map(cat=>{
         const cv = byCatMonth[cat];
@@ -1232,15 +1238,94 @@ async function syncToSheets(){
   render();
 }
 // ─── PDF EXPORT ──────────────────────────────────────────────────────────────
+function buildPdfModal(){
+  const from = state.pdfFrom||"";
+  const to   = state.pdfTo||"";
+  // Count how many cases fall in range
+  const filtered = state.cases.filter(c=>{
+    if(from && c.date < from) return false;
+    if(to   && c.date > to)   return false;
+    return true;
+  });
+  const today = todayStr();
+  const thisMonth = today.slice(0,7);
+  const thisYear  = today.slice(0,4);
+  return `
+  <div class="modal-backdrop" onclick="st({showPdfModal:false})">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-title">🖨 Print PDF</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        <button onclick="setPdfPreset('all')"
+          style="padding:10px 6px;border-radius:10px;border:2px solid ${!from&&!to?'#2563eb':'#e2e8f0'};background:${!from&&!to?'#eff6ff':'white'};font-size:12px;font-weight:700;color:${!from&&!to?'#1d4ed8':'#374151'};cursor:pointer">
+          All Time<br><span style="font-size:10px;font-weight:400;color:#6b7280">${state.cases.length} cases</span>
+        </button>
+        <button onclick="setPdfPreset('ytd')"
+          style="padding:10px 6px;border-radius:10px;border:2px solid ${from===thisYear+'-01-01'&&to===today?'#2563eb':'#e2e8f0'};background:${from===thisYear+'-01-01'&&to===today?'#eff6ff':'white'};font-size:12px;font-weight:700;color:${from===thisYear+'-01-01'&&to===today?'#1d4ed8':'#374151'};cursor:pointer">
+          Year to Date<br><span style="font-size:10px;font-weight:400;color:#6b7280">${state.cases.filter(c=>c.date.slice(0,4)===thisYear).length} cases</span>
+        </button>
+        <button onclick="setPdfPreset('mtd')"
+          style="padding:10px 6px;border-radius:10px;border:2px solid ${from===thisMonth+'-01'&&to===today?'#2563eb':'#e2e8f0'};background:${from===thisMonth+'-01'&&to===today?'#eff6ff':'white'};font-size:12px;font-weight:700;color:${from===thisMonth+'-01'&&to===today?'#1d4ed8':'#374151'};cursor:pointer">
+          This Month<br><span style="font-size:10px;font-weight:400;color:#6b7280">${state.cases.filter(c=>c.date.slice(0,7)===thisMonth).length} cases</span>
+        </button>
+        <button onclick="setPdfPreset('custom')"
+          style="padding:10px 6px;border-radius:10px;border:2px solid #e2e8f0;background:white;font-size:12px;font-weight:700;color:#374151;cursor:pointer">
+          Custom Range<br><span style="font-size:10px;font-weight:400;color:#6b7280">Pick dates below</span>
+        </button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+        <div>
+          <label class="lbl">From</label>
+          <input class="input" type="date" value="${from}" onchange="st({pdfFrom:this.value})" style="margin:0"/>
+        </div>
+        <div>
+          <label class="lbl">To</label>
+          <input class="input" type="date" value="${to}" onchange="st({pdfTo:this.value})" style="margin:0"/>
+        </div>
+      </div>
+
+      <div style="background:#f8fafc;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#374151">
+        <strong style="color:#1e3a5f">${filtered.length} case${filtered.length!==1?"s":""}</strong> will be included
+        ${from||to ? `<span style="color:#6b7280"> · ${from?dateLabel(from):"start"} → ${to?dateLabel(to):"today"}</span>` : `<span style="color:#6b7280"> (all time)</span>`}
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button class="modal-cancel" onclick="st({showPdfModal:false})">Cancel</button>
+        <button class="save-case-btn" style="margin:0" ${filtered.length===0?"disabled":""} onclick="exportPDF()">Generate PDF</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function setPdfPreset(p){
+  const today=todayStr();
+  const thisMonth=today.slice(0,7);
+  const thisYear=today.slice(0,4);
+  if(p==="all")    st({pdfFrom:"",pdfTo:""});
+  else if(p==="ytd") st({pdfFrom:thisYear+"-01-01",pdfTo:today});
+  else if(p==="mtd") st({pdfFrom:thisMonth+"-01",pdfTo:today});
+  else if(p==="custom") { /* leave dates as-is so user can edit */ }
+}
+window.setPdfPreset=setPdfPreset;
+
 function exportPDF(){
   if(!window.jspdf){ alert("PDF library still loading — please try again in a moment."); return; }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"letter" });
 
-  const cases = state.cases;
-  if(!cases.length){ alert("No cases to export."); return; }
+  const from = state.pdfFrom||"";
+  const to   = state.pdfTo||"";
+  const cases = state.cases.filter(c=>{
+    if(from && c.date < from) return false;
+    if(to   && c.date > to)   return false;
+    return true;
+  });
+  if(!cases.length){ alert("No cases in selected range."); return; }
+  st({showPdfModal:false});
 
   const today = todayStr();
+  const rangeLabel = from||to ? `${from?dateLabel(from):"Start"} – ${to?dateLabel(to):"Today"}` : "All Time";
   const thisMonth = today.slice(0,7);
   const thisYear  = today.slice(0,4);
   const grandTotal = cases.reduce((s,c)=>s+caseWRVU(c),0);
@@ -1257,7 +1342,7 @@ function exportPDF(){
   doc.setFont("helvetica","bold"); doc.setFontSize(16);
   doc.text("Billing & wRVU Case Log", ML, 10);
   doc.setFont("helvetica","normal"); doc.setFontSize(8);
-  doc.text(`Generated: ${today}   ·   EGD · Colonoscopy · ERCP · Consults · Follow-ups — 2026 wRVU`, ML, 16);
+  doc.text(`Generated: ${today}  ·  Range: ${rangeLabel}  ·  EGD · Colonoscopy · ERCP · Consults · Follow-ups`, ML, 16);
   doc.text(`Page 1`, PW-MR, 16, {align:"right"});
 
   // ── KPI summary boxes ──
@@ -1349,7 +1434,8 @@ function exportPDF(){
     }
   });
 
-  doc.save(`gi-wrvu-log-${today}.pdf`);
+  const fname = from||to ? `gi-wrvu-${from||"start"}-to-${to||today}.pdf` : `gi-wrvu-all-${today}.pdf`;
+  doc.save(fname);
 }
 
 window.setTab=setTab; window.toggleGroup=toggleGroup; window.toggleMonth=toggleMonth;
