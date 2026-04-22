@@ -1,0 +1,1932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Billing &amp; wRVU"/>
+<title>Billing &amp; wRVU Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f1f5f9;min-height:100vh;padding-bottom:calc(env(safe-area-inset-bottom) + 16px);}
+  input,select,button{font-family:inherit;-webkit-appearance:none;appearance:none;}
+  select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px!important;}
+
+  /* Layout */
+  .wrap{max-width:600px;margin:0 auto;padding:10px 10px 80px;}
+
+  /* Header */
+  .header{background:linear-gradient(135deg,#1e3a5f,#2563eb);border-radius:14px;padding:14px 14px 12px;margin-bottom:10px;color:white;}
+  .header h1{margin:0 0 1px;font-size:18px;font-weight:800;}
+  .header p{margin:0 0 10px;opacity:.8;font-size:11px;}
+
+  /* Header buttons — 2 rows, equal sizing */
+  .hdr-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:10px;}
+  .hdr-btn{padding:7px 4px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);border-radius:7px;color:white;font-size:11px;font-weight:600;cursor:pointer;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hdr-btn.danger{background:rgba(239,68,68,.3);border-color:rgba(239,68,68,.5);}
+  .save-badge{font-size:10px;background:rgba(255,255,255,.2);padding:2px 7px;border-radius:10px;}
+
+  /* Stats row */
+  .stat-row{display:flex;gap:5px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;}
+  .stat-row::-webkit-scrollbar{display:none;}
+  .stat{background:rgba(255,255,255,.18);border-radius:9px;padding:6px 8px;text-align:center;flex:1 0 0;}
+  .stat-highlight{background:rgba(255,255,255,.32);border:1px solid rgba(255,255,255,.5);}
+  .stat-v{font-size:14px;font-weight:800;line-height:1.1;}
+  .stat-highlight .stat-v{font-size:16px;}
+  .stat-l{font-size:7px;opacity:.85;margin-top:2px;text-transform:uppercase;letter-spacing:.3px;}
+
+  /* Tabs */
+  .tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:10px;}
+  .tab{padding:8px 4px;border:none;border-radius:9px;cursor:pointer;font-weight:500;font-size:12px;background:white;color:#4b5563;box-shadow:0 1px 3px rgba(0,0,0,.1);text-align:center;}
+  .tab.active{background:#1e3a5f;color:white;font-weight:700;}
+
+  /* Cards */
+  .card{background:white;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:10px;}
+  .card h3{margin:0 0 12px;font-size:14px;color:#1e3a5f;}
+
+  /* Form */
+  label.lbl{display:block;font-size:10px;font-weight:700;color:#6b7280;margin-bottom:3px;text-transform:uppercase;}
+  .input{width:100%;padding:9px 11px;border:1px solid #e5e7eb;border-radius:9px;font-size:15px;background:white;color:#111;outline:none;}
+  .input:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+  .span2{grid-column:span 2;}
+
+  /* Proc section */
+  .proc-section{border-radius:10px;overflow:hidden;margin-bottom:8px;border:1px solid #e5e7eb;}
+  .proc-section-head{padding:8px 11px;display:flex;justify-content:space-between;align-items:center;}
+  .proc-section-title{font-size:12px;font-weight:800;}
+  .proc-badge{margin-left:6px;border-radius:10px;padding:1px 7px;font-size:10px;color:white;font-weight:700;}
+  .add-btn{border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;color:white;flex-shrink:0;}
+  .proc-body{padding:8px 10px 2px;}
+  .proc-empty{padding:8px 12px;color:#9ca3af;font-size:12px;font-style:italic;}
+
+  /* Proc row — select fills width, wrvu + delete on right, always visible */
+  .proc-row{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;margin-bottom:6px;width:100%;}
+  .proc-select{width:100%;padding:6px 24px 6px 7px;border:1px solid #e5e7eb;border-radius:8px;font-size:11px;background:white;color:#111;outline:none;min-width:0;}
+  .proc-wrvu{font-weight:800;font-size:12px;color:#1e3a5f;white-space:nowrap;text-align:right;}
+  .rm-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:#fee2e2;border:none;border-radius:7px;color:#dc2626;font-size:16px;cursor:pointer;flex-shrink:0;font-weight:700;line-height:1;}
+
+  /* Modifiers */
+  .mod-row{display:flex;gap:6px;padding:2px 0 6px;width:100%;grid-column:1/-1;}
+  .mod-btn{display:inline-flex;align-items:center;gap:4px;padding:5px 9px;border-radius:20px;border:2px solid;cursor:pointer;font-size:10px;font-weight:700;background:white;transition:all .15s;flex:1;justify-content:center;}
+  .mod-btn-59{border-color:#d97706;color:#92400e;}
+  .mod-btn-59.active{background:#fef3c7;border-color:#92400e;}
+  .mod-btn-33{border-color:#059669;color:#065f46;}
+  .mod-btn-33.active{background:#d1fae5;border-color:#065f46;}
+  .mod-check{width:13px;height:13px;border-radius:3px;border:2px solid currentColor;display:inline-flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;}
+  .mod-btn.active .mod-check::after{content:"✓";}
+
+  /* Group header */
+  .group-hdr{display:flex;align-items:center;gap:7px;padding:4px 0 5px;cursor:pointer;border:none;background:none;width:100%;text-align:left;font-size:12px;font-weight:700;color:#374151;}
+  .group-hdr .arrow{font-size:10px;color:#9ca3af;}
+
+  /* Summary bar */
+  .summary-bar{padding:9px 12px;background:#f0f9ff;border-radius:9px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-left:4px solid #2563eb;}
+  .summary-codes{font-size:11px;color:#1e40af;font-weight:600;}
+  .summary-wrvu{font-size:18px;font-weight:900;color:#1e3a5f;}
+
+  /* Save btn */
+  .save-case-btn{width:100%;padding:13px;background:#1e3a5f;color:white;border:none;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer;}
+  .save-case-btn:disabled{background:#94a3b8;cursor:not-allowed;}
+  .hint{font-size:11px;color:#9ca3af;text-align:center;margin:5px 0 0;}
+
+  /* Case log cards */
+  .case-card{background:white;border-radius:12px;padding:12px 13px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:8px;}
+  .case-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+  .case-name{font-weight:700;font-size:14px;}
+  .case-meta{color:#9ca3af;font-size:11px;margin-left:6px;}
+  .case-note{color:#6b7280;font-size:11px;margin-left:5px;}
+  .case-wrvu{font-weight:900;font-size:15px;color:#1e3a5f;}
+  .case-actions{display:flex;align-items:center;gap:5px;flex-shrink:0;}
+  .icon-btn{background:none;border:none;cursor:pointer;font-size:15px;padding:2px 3px;opacity:.6;}
+  .delete-btn{background:#fee2e2;border:none;cursor:pointer;font-size:12px;padding:4px 7px;border-radius:7px;color:#dc2626;font-weight:700;}
+  .delete-btn:active{background:#fca5a5;}
+  .chip{display:inline-flex;align-items:center;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600;margin:2px 2px 2px 0;}
+  .cat-row{margin-bottom:3px;}
+  .cat-label{font-size:10px;font-weight:700;margin-right:4px;text-transform:uppercase;}
+
+  /* Monthly summary */
+  .month-card{background:white;border-radius:12px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden;}
+  .month-head{padding:12px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;}
+  .month-name{font-weight:800;font-size:14px;}
+  .month-sub{color:#9ca3af;font-size:11px;margin-left:6px;}
+  .month-wrvu{font-size:18px;font-weight:900;color:#1e3a5f;margin-right:6px;}
+  .month-body{border-top:1px solid #f1f5f9;}
+  .cat-chips-row{display:flex;gap:6px;padding:8px 12px;background:#f8fafc;flex-wrap:wrap;}
+  .cat-chip{padding:6px 10px;border-radius:8px;min-width:70px;}
+  .cat-chip-name{font-size:9px;font-weight:700;}
+  .cat-chip-val{font-size:14px;font-weight:800;line-height:1.2;}
+  .cat-chip-cnt{font-size:9px;color:#9ca3af;}
+  .month-footer{background:#eff6ff;padding:9px 14px;display:flex;justify-content:space-between;font-weight:700;color:#1e40af;font-size:12px;}
+
+  /* CPT ref table */
+  .ref-section-hdr{border-radius:9px;padding:8px 12px;margin-bottom:6px;margin-top:10px;}
+  .ref-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .ref-th{padding:6px 8px;text-align:left;font-size:10px;font-weight:700;color:#6b7280;border-bottom:1px solid #e5e7eb;background:#f8fafc;}
+  .ref-td{padding:7px 8px;border-bottom:1px solid #f1f5f9;}
+  .ref-code{font-family:monospace;font-weight:700;}
+
+  /* Modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;display:flex;align-items:flex-end;justify-content:center;padding:0;}
+  .modal{background:white;border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom));width:100%;max-width:600px;max-height:92vh;overflow-y:auto;}
+  .modal h3{margin:0 0 14px;color:#1e3a5f;font-size:16px;}
+  .modal-btns{display:flex;gap:8px;margin-top:14px;}
+  .modal-cancel{flex:1;padding:12px;background:#f3f4f6;border:none;border-radius:10px;font-weight:600;cursor:pointer;font-size:14px;}
+  .modal-confirm{flex:1;padding:12px;background:#1e3a5f;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;}
+  .modal-danger{background:#ef4444;}
+
+  /* Sheets modal (full overlay, not sheet) */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;display:flex;align-items:flex-end;justify-content:center;}
+  .modal-box{background:white;border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom));width:100%;max-width:600px;max-height:90vh;overflow-y:auto;}
+  .modal-title{margin:0 0 12px;color:#1e3a5f;font-size:16px;font-weight:800;}
+  .btn-cancel{flex:1;padding:12px;background:#f3f4f6;border:none;border-radius:10px;font-weight:600;cursor:pointer;font-size:14px;}
+  .btn-primary{flex:1;padding:12px;background:#1e3a5f;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;}
+  .modal-btns{display:flex;gap:8px;margin-top:14px;}
+
+  /* Photo */
+  .photo-area{text-align:center;padding:20px 12px;}
+  .photo-area .icon{font-size:44px;margin-bottom:6px;}
+  .photo-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px;}
+  .photo-btn{padding:11px 18px;border-radius:9px;font-weight:600;font-size:14px;cursor:pointer;border:1px solid #e5e7eb;background:#f3f4f6;}
+  .photo-btn.primary{background:#1e3a5f;color:white;border:none;}
+  .ai-msg{margin-top:12px;padding:9px 14px;border-radius:9px;font-size:13px;font-weight:500;}
+  .ai-ok{background:#ecfdf5;color:#065f46;}
+  .ai-err{background:#fef2f2;color:#991b1b;}
+
+  /* Pending */
+  .pending-card{border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-bottom:10px;}
+  .pending-card.dim{opacity:.4;}
+  .pending-top{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .confirm-btn{width:100%;padding:13px;background:#059669;color:white;border:none;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer;margin-top:6px;}
+
+  /* Disclaimer */
+  .disclaimer{background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:10px 12px;font-size:11px;color:#78350f;line-height:1.6;margin-top:10px;}
+
+  /* Empty state */
+  .empty{text-align:center;padding:36px 20px;color:#9ca3af;background:white;border-radius:12px;}
+  .empty .icon{font-size:40px;}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+const CPT_DATA = [
+  {cat:"EGD",        code:"43235",desc:"EGD – Diagnostic",                wrvu:2.50},
+  {cat:"EGD",        code:"43239",desc:"EGD – w/ Biopsy",                 wrvu:2.92},
+  {cat:"EGD",        code:"43244",desc:"EGD – w/ Band Ligation",          wrvu:3.70},
+  {cat:"EGD",        code:"43249",desc:"EGD – Balloon Dilation (TTS)",     wrvu:3.25},
+  {cat:"EGD",        code:"43245",desc:"EGD – Savary/Bougie Dilation",     wrvu:3.12},
+  {cat:"EGD",        code:"43251",desc:"EGD – w/ Polypectomy (snare)",     wrvu:3.50},
+  {cat:"EGD",        code:"43270",desc:"EGD – w/ Ablation (APC/RFA)",      wrvu:4.00},
+  {cat:"EGD",        code:"43247",desc:"EGD – Foreign Body Removal",       wrvu:3.25},
+  {cat:"EGD",        code:"43246",desc:"PEG Tube Placement",               wrvu:5.00},
+  {cat:"EGD – Uncommon", code:"43255",desc:"EGD – Control of Bleeding",   wrvu:3.50},
+  {cat:"Flex Sig",   code:"45330",desc:"Flex Sig – Diagnostic",            wrvu:1.45},
+  {cat:"Flex Sig",   code:"45331",desc:"Flex Sig – w/ Biopsy",             wrvu:1.96},
+  {cat:"Colonoscopy",code:"45378",desc:"Colonoscopy – Diagnostic",         wrvu:3.36},
+  {cat:"Colonoscopy",code:"45380",desc:"Colonoscopy – w/ Biopsy",          wrvu:4.43},
+  {cat:"Colonoscopy",code:"45382",desc:"Colonoscopy – w/ Control of Bleeding", wrvu:4.40},
+  {cat:"Colonoscopy",code:"45385",desc:"Colonoscopy – w/ Polypectomy",     wrvu:4.57},
+  {cat:"Colonoscopy",code:"45388",desc:"Colonoscopy – w/ Ablation (APC)", wrvu:4.75},
+  {cat:"Colonoscopy",code:"45390",desc:"Colonoscopy – w/ EMR",             wrvu:5.50},
+  {cat:"Colonoscopy",code:"45381",desc:"Colonoscopy – Submucosal Inj",    wrvu:4.00},
+  {cat:"Colonoscopy",code:"G0105",desc:"Screening Colo – High Risk",       wrvu:3.36},
+  {cat:"Colonoscopy",code:"G0121",desc:"Screening Colo – Avg Risk",        wrvu:3.36},
+  {cat:"ERCP",       code:"43260",desc:"ERCP – Diagnostic",                wrvu:5.50},
+  {cat:"ERCP",       code:"43262",desc:"ERCP – w/ Sphincterotomy",         wrvu:7.80},
+  {cat:"ERCP",       code:"43264",desc:"ERCP – w/ Stone Removal",          wrvu:8.50},
+  {cat:"ERCP",       code:"43274",desc:"ERCP – w/ Stent Placement",        wrvu:9.25},
+  {cat:"ERCP",       code:"43275",desc:"ERCP – Stent Removal/Exchange",    wrvu:7.50},
+  {cat:"ERCP",       code:"43273",desc:"ERCP – Cholangioscopy (add-on)",   wrvu:3.01},
+  {cat:"IP Consult", code:"99252",desc:"IP Consult – Level 2 (Low)",       wrvu:1.50},
+  {cat:"IP Consult", code:"99253",desc:"IP Consult – Level 3 (Moderate)",  wrvu:2.79},
+  {cat:"IP Consult", code:"99254",desc:"IP Consult – Level 4 (Mod-High)",  wrvu:3.69},
+  {cat:"IP Consult", code:"99255",desc:"IP Consult – Level 5 (High)",      wrvu:4.53},
+  {cat:"OP Consult", code:"99242",desc:"OP Consult – Level 2 (Low)",       wrvu:1.30},
+  {cat:"OP Consult", code:"99243",desc:"OP Consult – Level 3 (Moderate)",  wrvu:1.92},
+  {cat:"OP Consult", code:"99244",desc:"OP Consult – Level 4 (Mod-High)",  wrvu:3.02},
+  {cat:"OP Consult", code:"99245",desc:"OP Consult – Level 5 (High)",      wrvu:3.77},
+  {cat:"IP Follow-up",code:"99231",desc:"IP Follow-up – Level 1 (Low)",    wrvu:0.76},
+  {cat:"IP Follow-up",code:"99232",desc:"IP Follow-up – Level 2 (Moderate)",wrvu:1.39},
+  {cat:"IP Follow-up",code:"99233",desc:"IP Follow-up – Level 3 (High)",   wrvu:2.00},
+  {cat:"OP Follow-up",code:"99212",desc:"OP Follow-up – Level 2 (Low)",    wrvu:0.70},
+  {cat:"OP Follow-up",code:"99213",desc:"OP Follow-up – Level 3 (Moderate)",wrvu:1.30},
+  {cat:"OP Follow-up",code:"99214",desc:"OP Follow-up – Level 4 (Mod-High)",wrvu:1.92},
+  {cat:"OP Follow-up",code:"99215",desc:"OP Follow-up – Level 5 (High)",   wrvu:2.80},
+];
+
+const PROC_CATS  = ["EGD","Colonoscopy","ERCP"];
+const EM_CATS    = ["IP Consult","OP Consult","IP Follow-up","OP Follow-up"];
+const EXTRA_CATS = ["EGD – Uncommon","Flex Sig"];
+const ALL_CATS   = [...PROC_CATS,...EM_CATS,...EXTRA_CATS];
+
+const CAT_COLOR = {
+  EGD:"#2563eb", Colonoscopy:"#059669", ERCP:"#d97706",
+  "IP Consult":"#7c3aed","OP Consult":"#9333ea",
+  "IP Follow-up":"#0891b2","OP Follow-up":"#0284c7",
+  "EGD – Uncommon":"#dc2626","Flex Sig":"#65a30d"
+};
+const CAT_BG = {
+  EGD:"#eff6ff", Colonoscopy:"#ecfdf5", ERCP:"#fffbeb",
+  "IP Consult":"#f5f3ff","OP Consult":"#fdf4ff",
+  "IP Follow-up":"#ecfeff","OP Follow-up":"#e0f2fe",
+  "EGD – Uncommon":"#fef2f2","Flex Sig":"#f7fee7"
+};
+const CAT_ICON = {
+  EGD:"", Colonoscopy:"", ERCP:"",
+  "IP Consult":"","OP Consult":"",
+  "IP Follow-up":"","OP Follow-up":"",
+  "EGD – Uncommon":"🩸","Flex Sig":"🔭"
+};
+
+const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONTHS_FULL=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const SK = "gi-wrvu-v4";
+
+// ─── STATE ──────────────────────────────────────────────────────────────────
+let state = {
+  tab: "log",
+  cases: [],
+  draft: newCase(),
+  editing: null,
+  pending: [],
+  aiMsg: "",
+  aiLoading: false,
+  expandedMonths: {},
+  showClear: false,
+  showSheets: false,
+  sheetsStatus: "",
+  summaryShowAll: false,
+  expandedCaseMonth: "",
+  saveStatus: "",
+  showProcGroup: true,
+  showEMGroup: false,
+  showExtraGroup: false,
+  searchQuery: "",
+  showPdfModal: false,
+  pdfFrom: "",
+  pdfTo: "",
+  showAddCharge: false,
+  addChargeDraft: null,
+  addChargeSearch: "",
+  docModal: null,  // {caseId}
+};
+
+function todayStr(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2); }
+function monthKey(d){ const dt=new Date(d+"T12:00:00"); return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}`; }
+function monthLabel(k){ const[y,m]=k.split("-"); return `${MONTHS_FULL[+m-1]} ${y}`; }
+function dateLabel(d){
+  if(!d) return "";
+  const[y,m,day]=d.split("-");
+  return `${MONTHS[+m-1].slice(0,3)} ${+day}, ${y}`;
+}
+function dateSearchStr(d){
+  if(!d) return "";
+  const[y,m,day]=d.split("-");
+  const abbr = MONTHS[+m-1].toLowerCase();        // "mar"
+  const full  = MONTHS_FULL[+m-1].toLowerCase();  // "march"
+  return `${y} ${+m} ${+day} ${abbr} ${full} ${+m}/${+day}`.toLowerCase();
+}
+
+function newCase(date){ return {id:uid(),date:date||todayStr(),patient:"",note:"",procs:[],docs:[]}; }
+function caseWRVU(c){ return c.procs.reduce((s,p)=>s+(CPT_DATA.find(x=>x.code===p.code)?.wrvu||0),0); }
+function cptFor(code){ return CPT_DATA.find(x=>x.code===code); }
+function sortCases(){ state.cases.sort((a,b)=>b.date.localeCompare(a.date)); }
+const CAT_DEFAULT_CODE = { EGD: "43239", Colonoscopy: "45385" }; // EGD w/ Biopsy, Colo w/ Snare Polypectomy
+function defaultCode(cat){ return CAT_DEFAULT_CODE[cat] || CPT_DATA.find(c=>c.cat===cat)?.code; }
+
+// ─── STORAGE ────────────────────────────────────────────────────────────────
+function loadCases(){
+  try{
+    const raw=localStorage.getItem(SK);
+    if(raw){
+      const arr=JSON.parse(raw);
+      if(Array.isArray(arr)) return arr.map(migrate);
+    }
+    // migrate old key
+    const old=localStorage.getItem("gi-wrvu-cases-v2");
+    if(old){
+      const arr=JSON.parse(old);
+      if(Array.isArray(arr)) return arr.map(migrate);
+    }
+  }catch(e){}
+  return [];
+}
+function migrate(c){
+  return {...c, docs:(c.docs||[]), synced:(c.synced||false), procs:(c.procs||[]).map(p=>{
+    if(p.cat) return p;
+    return {...p, cat: cptFor(p.code)?.cat||"EGD"};
+  })};
+}
+let saveTimer=null;
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  state.saveStatus="saving";
+  render();
+  saveTimer=setTimeout(()=>{
+    try{ localStorage.setItem(SK,JSON.stringify(state.cases)); state.saveStatus="saved"; }
+    catch(e){ state.saveStatus="error"; }
+    render();
+    setTimeout(()=>{ state.saveStatus=""; render(); },2000);
+  },600);
+}
+
+// ─── RENDER ENGINE ──────────────────────────────────────────────────────────
+function render(){
+  document.getElementById("app").innerHTML = buildApp();
+  attachEvents();
+}
+
+function buildApp(){
+  const {cases,tab,draft,editing,pending,aiMsg,aiLoading,showClear,saveStatus,showProcGroup,showEMGroup,showExtraGroup} = state;
+  const allProcs = cases.flatMap(c=>c.procs.map(p=>({...p,...(cptFor(p.code)||{wrvu:0,cat:"?"})})));
+  const grandTotal = allProcs.reduce((s,p)=>s+p.wrvu,0);
+  const byMonth={};
+  cases.forEach(c=>{const k=monthKey(c.date);if(!byMonth[k])byMonth[k]=[];byMonth[k].push(c);});
+  const monthKeys=Object.keys(byMonth).sort().reverse();
+
+  return `
+  ${showClear ? buildClearModal() : ""}
+  ${state.showPdfModal ? buildPdfModal() : ""}
+  ${state.showAddCharge && state.addChargeDraft ? buildAddChargeModal() : ""}
+  ${state.docModal ? buildDocModal() : ""}
+  ${editing   ? buildEditModal(editing,showProcGroup,showEMGroup,showExtraGroup) : ""}
+  ${state.showSheets ? buildSheetsModal() : ""}
+
+  <div class="header">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <h1>🩺 Billing &amp; wRVU Tracker</h1>
+      ${saveStatus==="saving"?`<span class="save-badge">Saving…</span>`:saveStatus==="saved"?`<span class="save-badge">✅ Saved</span>`:saveStatus==="error"?`<span class="save-badge" style="background:rgba(239,68,68,.4)">⚠️ Error</span>`:""}
+    </div>
+    <p>EGD · Colonoscopy · ERCP · Consults · Follow-ups — 2026 wRVU</p>
+    <div class="hdr-btns">
+      <button class="hdr-btn" onclick="exportCSV()">⬇ Export CSV</button>
+      <button class="hdr-btn" onclick="document.getElementById('importFile').click()">⬆ Import CSV</button>
+      <button class="hdr-btn" onclick="st({showPdfModal:true,pdfFrom:state.pdfFrom||'',pdfTo:state.pdfTo||''})">🖨 Print PDF</button>
+      <button class="hdr-btn" onclick="st({showSheets:true})">📊 Google Sheets</button>
+      <button class="hdr-btn danger" onclick="st({showClear:true})">🗑 Clear All</button>
+      <input type="file" id="importFile" accept=".csv" style="display:none" onchange="importCSV(this)"/>
+    </div>
+    <div class="stat-row">
+      ${(()=>{
+        const today = todayStr();
+        const thisMonth = today.slice(0,7); // "YYYY-MM"
+        const thisYear  = today.slice(0,4); // "YYYY"
+
+        const todayCases  = cases.filter(c=>c.date===today);
+        const mtdCases    = cases.filter(c=>c.date.slice(0,7)===thisMonth);
+        const ytdCases    = cases.filter(c=>c.date.slice(0,4)===thisYear);
+
+        const todayWRVU = todayCases.reduce((s,c)=>s+caseWRVU(c),0);
+        const mtdWRVU   = mtdCases.reduce((s,c)=>s+caseWRVU(c),0);
+        const ytdWRVU   = ytdCases.reduce((s,c)=>s+caseWRVU(c),0);
+        const totalProcs = cases.flatMap(c=>c.procs).length;
+
+        return `
+        <div class="stat stat-highlight">
+          <div class="stat-v">${todayWRVU.toFixed(2)}</div>
+          <div class="stat-l">Today wRVU</div>
+        </div>
+        <div class="stat">
+          <div class="stat-v">${mtdWRVU.toFixed(2)}</div>
+          <div class="stat-l">Month to Date</div>
+        </div>
+        <div class="stat">
+          <div class="stat-v">${ytdWRVU.toFixed(2)}</div>
+          <div class="stat-l">Year to Date</div>
+        </div>
+        <div class="stat">
+          <div class="stat-v">${cases.length}</div>
+          <div class="stat-l">Cases</div>
+        </div>
+        <div class="stat">
+          <div class="stat-v">${totalProcs}</div>
+          <div class="stat-l">Procedures</div>
+        </div>`;
+      })()}
+    </div>
+  </div>
+
+  <div class="tabs">
+    ${[["log","Log Entry"],["photo","Upload List"],["summary","Summary"],["codes","CPT Codes"]].map(([id,label])=>
+      `<button class="tab${tab===id?" active":""}" onclick="setTab('${id}')">${label}</button>`
+    ).join("")}
+  </div>
+
+  ${tab==="log"    ? buildLog(draft,cases,showProcGroup,showEMGroup,showExtraGroup) : ""}
+  ${tab==="photo"  ? buildPhoto(pending,aiMsg,aiLoading,showProcGroup,showEMGroup,showExtraGroup) : ""}
+  ${tab==="summary"? buildSummary(cases,byMonth,monthKeys,grandTotal,allProcs) : ""}
+  ${tab==="codes"  ? buildCodes() : ""}
+  `;
+}
+
+// ─── PROC SECTION ────────────────────────────────────────────────────────────
+function buildProcSection(cat, procs, prefix){
+  const catProcs = procs.filter(p=>p.cat===cat);
+  const color = CAT_COLOR[cat];
+  const bg = CAT_BG[cat];
+  const catWRVU = catProcs.reduce((s,p)=>s+(cptFor(p.code)?.wrvu||0),0);
+  const opts = CPT_DATA.filter(c=>c.cat===cat).map(c=>`<option value="${c.code}">${c.code} — ${c.desc} (${c.wrvu})</option>`).join("");
+  const isColon = cat === "Colonoscopy";
+  const showMod59 = cat === "Colonoscopy" || cat === "EGD" || cat === "EGD – Uncommon" || cat === "Flex Sig";
+  return `
+  <div class="proc-section" style="border-color:${color}30">
+    <div class="proc-section-head" style="background:${color}15;border-bottom:1px solid ${color}22">
+      <span class="proc-section-title" style="color:${color}">${CAT_ICON[cat]} ${cat}${catProcs.length?`<span class="proc-badge" style="background:${color}">${catWRVU.toFixed(2)} wRVU</span>`:""}</span>
+      <button class="add-btn" style="background:${color}" onclick="${prefix}AddProc('${cat}')">+ Add</button>
+    </div>
+    ${catProcs.length===0
+      ? `<div class="proc-empty">No ${cat} — tap + Add to include one</div>`
+      : `<div class="proc-body">${catProcs.map(p=>{
+          const cpt=cptFor(p.code);
+          const m59 = p.mod59||false;
+          const m33 = p.mod33||false;
+          return `<div class="proc-row">
+            <select class="proc-select" style="border-left:3px solid ${color}" onchange="${prefix}ChgProc('${p.id}',this.value)">${opts.replace(`value="${p.code}"`,`value="${p.code}" selected`)}</select>
+            <span class="proc-wrvu" style="color:${color}">${cpt?cpt.wrvu.toFixed(2):"—"}</span>
+            <button class="rm-btn" onclick="${prefix}RmProc('${p.id}')">×</button>
+            ${showMod59 ? `<div class="mod-row">
+              <button type="button" class="mod-btn mod-btn-59${m59?" active":""}" onclick="${prefix}ChgMod('${p.id}','mod59',${!m59})">
+                <span class="mod-check"></span> Mod 59 · Distinct
+              </button>
+              ${isColon ? `<button type="button" class="mod-btn mod-btn-33${m33?" active":""}" onclick="${prefix}ChgMod('${p.id}','mod33',${!m33})">
+                <span class="mod-check"></span> Mod 33 · Preventive
+              </button>` : ""}
+            </div>` : ""}
+          </div>`;
+        }).join("")}</div>`
+    }
+  </div>`;
+}
+
+function buildProcGroups(procs, prefix, showProcGroup, showEMGroup, toggleFn, showExtraGroup){
+  const tf = toggleFn || "toggleGroup";
+  return `
+  <button class="group-hdr" onclick="${tf}('showProcGroup')">
+    <span class="arrow">${showProcGroup?"▼":"▶"}</span> 🔬 PROCEDURES (EGD / COLONOSCOPY / ERCP)
+  </button>
+  ${showProcGroup ? PROC_CATS.map(cat=>buildProcSection(cat,procs,prefix)).join("") : ""}
+  <button class="group-hdr" onclick="${tf}('showEMGroup')">
+    <span class="arrow">${showEMGroup?"▼":"▶"}</span> 🏥 E&amp;M CODES (CONSULTS &amp; FOLLOW-UPS)
+  </button>
+  ${showEMGroup ? EM_CATS.map(cat=>buildProcSection(cat,procs,prefix)).join("") : ""}
+  <button class="group-hdr" onclick="${tf}('showExtraGroup')">
+    <span class="arrow">${showExtraGroup?"▼":"▶"}</span> ➕ ADDITIONAL (EGD CTRL BLEEDING / FLEX SIG)
+  </button>
+  ${showExtraGroup ? EXTRA_CATS.map(cat=>buildProcSection(cat,procs,prefix)).join("") : ""}
+  `;
+}
+
+// ─── LOG TAB ─────────────────────────────────────────────────────────────────
+function buildLog(draft, cases, showProcGroup, showEMGroup, showExtraGroup){
+  const total = caseWRVU(draft);
+  const codes = draft.procs.map(p=>cptFor(p.code)?.code||"?").join(" + ")||"none";
+  const canSave = draft.patient.trim() && draft.procs.length>0;
+  return `
+  <div class="card">
+    <h3>Add Patient Case</h3>
+    <div class="grid2">
+      <div><label class="lbl">Date</label><input class="input" type="date" value="${draft.date}" onchange="updDraft('date',this.value)"/></div>
+      <div><label class="lbl">Patient / MRN</label><input class="input" id="draftPatient" type="text" placeholder="Smith, John" value="${esc(draft.patient)}" oninput="draftTextInput('patient',this.value)"/></div>
+      <div class="span2"><label class="lbl">Note (optional)</label><input class="input" id="draftNote" type="text" placeholder="e.g. 10mm polyp, jaundice" value="${esc(draft.note)}" oninput="draftTextInput('note',this.value)"/></div>
+    </div>
+    ${buildProcGroups(draft.procs,"d",showProcGroup,showEMGroup,undefined,showExtraGroup)}
+    <div class="summary-bar" style="margin-top:10px">
+      <span class="summary-codes">${draft.procs.length} proc${draft.procs.length!==1?"s":""} · ${codes}</span>
+      <span class="summary-wrvu">${total.toFixed(2)} wRVU</span>
+    </div>
+    <button class="save-case-btn" ${canSave?"":"disabled"} onclick="commitDraft()">+ Save Case to Log</button>
+    ${!canSave?`<p class="hint">${!draft.patient.trim()?"Enter a patient name/MRN":"Add at least one procedure"}</p>`:""}
+  </div>
+
+  ${cases.length>0?`
+  <div style="position:relative;margin-bottom:6px">
+    <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none">🔍</span>
+    <input id="caseSearch" class="input" type="search" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
+      placeholder="Search patient, date, note, CPT…"
+      oninput="doSearch(this.value)"
+      style="background:white;padding-left:36px;padding-right:38px;-webkit-appearance:none"/>
+    <button onclick="clearSearch()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:22px;color:#9ca3af;cursor:pointer;padding:0;line-height:1">×</button>
+  </div>
+  <div id="searchCount" style="font-size:11px;color:#6b7280;margin:-2px 2px 6px;display:none"></div>
+  `:""}
+  <div id="caseList"></div>
+  `;}
+
+// ─── PHOTO TAB ───────────────────────────────────────────────────────────────
+function buildPhoto(pending, aiMsg, aiLoading, showProcGroup, showEMGroup, showExtraGroup){
+  return `
+  <div class="card">
+    <div class="photo-area">
+      <div class="icon"></div>
+      <h3 style="margin:0 0 8px">Upload Your Patient List</h3>
+      <p style="color:#6b7280;font-size:14px;margin:0 0 16px;line-height:1.6">Snap a photo of your schedule. AI reads every name, then <strong>you assign the CPT codes.</strong></p>
+      <div style="text-align:left;margin-bottom:14px;">
+        <label class="lbl">🔑 Anthropic API Key</label>
+        <input class="input" type="password" id="apiKeyInput" placeholder="sk-ant-..." value="${esc(state.apiKey||"")}" oninput="saveApiKey(this.value)" style="font-family:monospace;font-size:13px;letter-spacing:0.5px"/>
+        <p style="font-size:11px;color:#9ca3af;margin:5px 0 0;line-height:1.5;">Required for AI photo reading. Get yours free at <strong>console.anthropic.com</strong>. Stored only on this device.</p>
+      </div>
+      <div class="photo-btns">
+        <button class="photo-btn" onclick="triggerFile(false)">📁 Choose File</button>
+        <button class="photo-btn primary" onclick="triggerFile(true)">Take Photo</button>
+      </div>
+      <p style="font-size:11px;color:#9ca3af;margin:10px 0 0;line-height:1.5;text-align:left;">
+        ⚠️ <strong>Must be accessed via a URL</strong> (e.g. Netlify), not opened as a local file. Local files block the API on iOS Safari.
+      </p>
+      <input type="file" id="photoFile" accept="image/*" style="display:none" onchange="handlePhoto(this)"/>
+      ${aiLoading?`<p style="color:#2563eb;font-weight:600;margin-top:14px">⏳ Reading patient list with AI…</p>`:""}
+      ${aiMsg?`<div class="ai-msg ${aiMsg.startsWith("✅")?"ai-ok":"ai-err"}">${aiMsg}</div>`:""}
+    </div>
+  </div>
+  ${pending.length>0?`
+  <div class="card">
+    <h3>Review Detected Patients</h3>
+    <p style="color:#6b7280;font-size:13px;margin:0 0 14px">Set date and assign CPT codes, then confirm.</p>
+    ${pending.map((p,pi)=>{
+    return `
+    <div class="pending-card ${p.selected?"":"dim"}">
+      <div class="pending-top">
+        <input type="checkbox" ${p.selected?"checked":""} onchange="togglePending(${pi},this.checked)" style="width:18px;height:18px;flex-shrink:0"/>
+        <span style="font-weight:700;font-size:14px">${esc(p.patient)}</span>
+        ${p.note?`<span style="color:#6b7280;font-size:12px">· ${esc(p.note)}</span>`:""}
+        <span style="margin-left:auto;font-weight:800;color:#1e3a5f;font-size:13px">${p.procs.reduce((s,pr)=>s+(cptFor(pr.code)?.wrvu||0),0).toFixed(2)} wRVU</span>
+        <button class="delete-btn" onclick="removePending(${pi})" title="Remove patient">Remove</button>
+      </div>
+      <div style="margin-bottom:10px"><label class="lbl">Date</label><input class="input" type="date" value="${p.date}" onchange="setPendingDate(${pi},this.value)" style="width:auto"/></div>
+      ${ALL_CATS.map(cat=>{
+        const catProcs=p.procs.filter(pr=>pr.cat===cat);
+        const color=CAT_COLOR[cat];
+        const opts=CPT_DATA.filter(c=>c.cat===cat).map(c=>`<option value="${c.code}">${c.code} — ${c.desc} (${c.wrvu})</option>`).join("");
+        return `
+        <div style="margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-size:11px;font-weight:700;color:${color}">${CAT_ICON[cat]} ${cat}</span>
+            <button class="add-btn" style="background:${color};padding:3px 9px;font-size:11px" onclick="pendingAddProc(${pi},'${cat}')">+ Add</button>
+          </div>
+          ${catProcs.map(pr=>{
+            const gi=p.procs.findIndex(x=>x.id===pr.id);
+            const cpt=cptFor(pr.code);
+            return `<div class="proc-row">
+              <select class="proc-select" style="border-left:3px solid ${color}" onchange="pendingChgProc(${pi},${gi},this.value)">${opts.replace(`value="${pr.code}"`,`value="${pr.code}" selected`)}</select>
+              <span class="proc-wrvu" style="color:${color}">${(cpt?.wrvu||0).toFixed(2)}</span>
+              <button class="rm-btn" onclick="pendingRmProc(${pi},'${pr.id}')">×</button>
+            </div>`;
+          }).join("")}
+        </div>`;
+      }).join("")}
+    </div>`;
+  }).join("")}
+    <button class="confirm-btn" onclick="confirmPending()">Add ${pending.filter(p=>p.selected).length} Case(s) to Log</button>
+  </div>`:""}
+  `;
+}
+
+// ─── SUMMARY TAB ─────────────────────────────────────────────────────────────
+function buildSummary(cases,byMonth,monthKeys,grandTotal,allProcs){
+  if(!monthKeys.length) return `<div class="empty"><div class="icon"></div><p>No data yet. Start logging cases.</p></div>`;
+
+  const today = todayStr();
+  const thisMonth = today.slice(0,7);
+  const thisYear  = today.slice(0,4);
+  const ytdKeys   = monthKeys.filter(k=>k.startsWith(thisYear));
+  const allChartKeys = [...monthKeys].reverse(); // oldest→newest
+  const showAll = state.summaryShowAll;
+  const chartKeys = showAll ? allChartKeys : allChartKeys.slice(-12);
+
+  // MTD / YTD
+  const mtdWRVU = (byMonth[thisMonth]||[]).reduce((s,c)=>s+caseWRVU(c),0);
+  const ytdWRVU = ytdKeys.reduce((s,mk)=>s+byMonth[mk].reduce((ss,c)=>ss+caseWRVU(c),0),0);
+
+  // Category breakdown all-time
+  const byCatAll = {};
+  allProcs.forEach(p=>{ byCatAll[p.cat]=(byCatAll[p.cat]||0)+p.wrvu; });
+
+  // Cases per month data
+  const caseVals = chartKeys.map(mk=>byMonth[mk].length);
+  const caseMax  = Math.max(...caseVals, 1);
+
+  // SVG bar chart dimensions
+  const BAR_W = 28, BAR_GAP = 6, CHART_H = 100, LABEL_H = 18, VALUE_H = 14;
+  const totalW = chartKeys.length * (BAR_W + BAR_GAP) - BAR_GAP;
+  const expandedCaseMk = state.expandedCaseMonth||"";
+
+  return `
+  <!-- KPI row -->
+  <div class="card" style="padding:12px 14px;margin-bottom:10px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
+      <div>
+        <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:2px">MTD</div>
+        <div style="font-size:20px;font-weight:900;color:#2563eb;line-height:1">${mtdWRVU.toFixed(1)}</div>
+        <div style="font-size:9px;color:#9ca3af">wRVU</div>
+      </div>
+      <div style="border-left:1px solid #f1f5f9;border-right:1px solid #f1f5f9">
+        <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:2px">YTD</div>
+        <div style="font-size:20px;font-weight:900;color:#059669;line-height:1">${ytdWRVU.toFixed(1)}</div>
+        <div style="font-size:9px;color:#9ca3af">wRVU</div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:2px">All Time</div>
+        <div style="font-size:20px;font-weight:900;color:#1e3a5f;line-height:1">${grandTotal.toFixed(1)}</div>
+        <div style="font-size:9px;color:#9ca3af">wRVU</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cases per Month — vertical SVG bar chart -->
+  <div class="card" style="padding:12px 14px;margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:700;color:#374151">Cases per Month</div>
+      ${allChartKeys.length>12?`<button onclick="st({summaryShowAll:${!showAll},expandedCaseMonth:''})" style="font-size:10px;font-weight:600;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:3px 9px;cursor:pointer">${showAll?'Show less':'All '+allChartKeys.length+' months'}</button>`:''}
+    </div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+      <svg width="${totalW}" height="${CHART_H+LABEL_H+VALUE_H}" style="display:block;overflow:visible">
+        ${chartKeys.map((mk,i)=>{
+          const v = caseVals[i];
+          const barH = Math.max(Math.round((v/caseMax)*(CHART_H-VALUE_H-4)),4);
+          const x = i*(BAR_W+BAR_GAP);
+          const y = CHART_H - barH;
+          const isThis = mk===thisMonth;
+          const isExp = mk===expandedCaseMk;
+          const fill = isExp?"#7c3aed":isThis?"#2563eb":"#93c5fd";
+          const lbl = monthLabel(mk).slice(0,3);
+          return `<g style="cursor:pointer" onclick="st({expandedCaseMonth:'${isExp?'':mk}'})">
+            <rect x="${x}" y="${y}" width="${BAR_W}" height="${barH}" rx="4" fill="${fill}"/>
+            ${isExp?`<rect x="${x}" y="${y}" width="${BAR_W}" height="${barH}" rx="4" fill="none" stroke="#7c3aed" stroke-width="2"/>`:''}
+            <text x="${x+BAR_W/2}" y="${y-3}" text-anchor="middle" font-size="9" fill="${isThis?'#1e3a5f':'#6b7280'}" font-weight="${isThis?'700':'400'}">${v}</text>
+            <text x="${x+BAR_W/2}" y="${CHART_H+12}" text-anchor="middle" font-size="9" fill="${isExp?'#7c3aed':isThis?'#1e3a5f':'#6b7280'}" font-weight="${isThis||isExp?'700':'400'}">${lbl}</text>
+            ${isThis?`<text x="${x+BAR_W/2}" y="${CHART_H+22}" text-anchor="middle" font-size="7" fill="#2563eb">●</text>`:''}
+          </g>`;
+        }).join('')}
+      </svg>
+    </div>
+    <div style="font-size:9px;color:#9ca3af;margin-top:4px">Tap a bar to see procedure breakdown</div>
+
+    <!-- Expanded month detail -->
+    ${expandedCaseMk && byMonth[expandedCaseMk] ? (()=>{
+      const mCases = byMonth[expandedCaseMk];
+      const totalCases = mCases.length;
+      const procCounts = {};
+      mCases.forEach(c=>c.procs.forEach(p=>{
+        const cpt=cptFor(p.code); const cat=cpt?.cat||"?";
+        procCounts[cat]=(procCounts[cat]||0)+1;
+      }));
+      const totalProcs = Object.values(procCounts).reduce((s,v)=>s+v,0)||1;
+      const catsPresent = ALL_CATS.filter(cat=>procCounts[cat]);
+      return `<div style="margin-top:12px;border-top:1px solid #f1f5f9;padding-top:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-size:13px;font-weight:800;color:#7c3aed">${monthLabel(expandedCaseMk)}</div>
+          <div style="font-size:12px;color:#6b7280">${totalCases} case${totalCases!==1?'s':''} · ${totalProcs} procs</div>
+        </div>
+        ${catsPresent.length===0
+          ? `<div style="font-size:11px;color:#9ca3af;font-style:italic">No procedures logged</div>`
+          : catsPresent.map(cat=>{
+              const cnt = procCounts[cat];
+              const pct = Math.max(Math.round((cnt/totalProcs)*100),1);
+              const color = CAT_COLOR[cat];
+              return `<div style="margin-bottom:8px">
+                <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
+                  <span style="font-weight:600;color:${color}">${cat}</span>
+                  <span style="color:#6b7280">${cnt} proc${cnt!==1?'s':''} · ${pct}%</span>
+                </div>
+                <div style="background:linear-gradient(to right,${color} ${pct}%,#f1f5f9 ${pct}%);border-radius:5px;height:9px"></div>
+              </div>`;
+            }).join('')
+        }
+      </div>`;
+    })() : ''}
+  </div>
+
+  <!-- Year to Date wRVU breakdown -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:0 2px">
+    <div style="font-size:12px;font-weight:700;color:#374151">Year to Date wRVU — ${thisYear}</div>
+    <div style="font-size:11px;color:#6b7280">${ytdWRVU.toFixed(2)} total</div>
+  </div>
+  ${chartKeys.slice().reverse().filter(mk=>mk.startsWith(thisYear)).map(mk=>{
+    const v = byMonth[mk].reduce((s,c)=>s+caseWRVU(c),0);
+    const isThisMonth = mk===thisMonth;
+    const mCases = byMonth[mk];
+    const byCatMonth = {};
+    mCases.forEach(c=>c.procs.forEach(p=>{
+      const cpt=cptFor(p.code); const cat=cpt?.cat||"?";
+      byCatMonth[cat]=(byCatMonth[cat]||0)+(cpt?.wrvu||0);
+    }));
+    const catsPresent = ALL_CATS.filter(cat=>byCatMonth[cat]);
+    const ytdPct = ytdWRVU>0 ? Math.max(Math.round((v/ytdWRVU)*100),1) : 0;
+    return `<div class="card" style="padding:12px 14px;margin-bottom:8px;${isThisMonth?'border:2px solid #2563eb':''}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${catsPresent.length?'10':'0'}px">
+        <div style="font-size:13px;font-weight:800;color:${isThisMonth?'#1e3a5f':'#374151'}">${monthLabel(mk)}${isThisMonth?' <span style="font-size:9px;background:#dbeafe;color:#1d4ed8;border-radius:4px;padding:1px 5px;font-weight:700;margin-left:4px">current</span>':''}</div>
+        <div style="font-size:14px;font-weight:900;color:${isThisMonth?'#2563eb':'#1e3a5f'}">${v.toFixed(2)} <span style="font-size:9px;font-weight:500;color:#9ca3af">wRVU · ${ytdPct}% of YTD</span></div>
+      </div>
+      ${catsPresent.map(cat=>{
+        const cv = byCatMonth[cat];
+        const pct = Math.max(Math.round((cv/v)*100),1);
+        const color = CAT_COLOR[cat];
+        return `<div style="margin-bottom:7px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
+            <span style="font-weight:600;color:${color}">${cat}</span>
+            <span style="color:#6b7280">${cv.toFixed(2)} wRVU · ${pct}%</span>
+          </div>
+          <div style="background:linear-gradient(to right,${color} ${pct}%,#f1f5f9 ${pct}%);border-radius:5px;height:9px"></div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('')}
+
+  <!-- All-time category breakdown -->
+  <div class="card" style="padding:12px 14px;margin-bottom:10px">
+    <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:10px">wRVU by Category (All Time)</div>
+    ${ALL_CATS.filter(cat=>byCatAll[cat]).map(cat=>{
+      const v = byCatAll[cat];
+      const pct = Math.max(Math.round((v/grandTotal)*100),1);
+      const color = CAT_COLOR[cat];
+      return `<div style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
+          <span style="font-weight:600;color:${color}">${cat}</span>
+          <span style="color:#6b7280">${v.toFixed(2)} wRVU · ${pct}%</span>
+        </div>
+        <div style="background:linear-gradient(to right,${color} ${pct}%,#f1f5f9 ${pct}%);border-radius:5px;height:9px"></div>
+      </div>`;
+    }).join('')}
+  </div>
+
+  <!-- Colonoscopy modifiers -->
+  ${(()=>{
+    const allColonProcs = cases.flatMap(c=>c.procs.filter(p=>p.cat==="Colonoscopy"));
+    const mod59cnt = allColonProcs.filter(p=>p.mod59).length;
+    const mod33cnt = allColonProcs.filter(p=>p.mod33).length;
+    if(!allColonProcs.length) return "";
+    return `<div class="card" style="padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:10px">Colonoscopy Modifiers</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div style="background:#fef3c7;border-radius:9px;padding:10px;text-align:center;border-top:3px solid #d97706">
+          <div style="font-size:22px;font-weight:900;color:#92400e">${mod59cnt}</div>
+          <div style="font-size:10px;font-weight:700;color:#92400e">Mod 59</div>
+          <div style="font-size:9px;color:#6b7280">Distinct</div>
+        </div>
+        <div style="background:#d1fae5;border-radius:9px;padding:10px;text-align:center;border-top:3px solid #059669">
+          <div style="font-size:22px;font-weight:900;color:#065f46">${mod33cnt}</div>
+          <div style="font-size:10px;font-weight:700;color:#065f46">Mod 33</div>
+          <div style="font-size:9px;color:#6b7280">Preventive</div>
+        </div>
+        <div style="background:#f1f5f9;border-radius:9px;padding:10px;text-align:center;border-top:3px solid #64748b">
+          <div style="font-size:22px;font-weight:900;color:#374151">${allColonProcs.length}</div>
+          <div style="font-size:10px;font-weight:700;color:#374151">Total</div>
+          <div style="font-size:9px;color:#6b7280">Colonoscopies</div>
+        </div>
+      </div>
+    </div>`;
+  })()}
+  `;
+}
+
+// ─── CODES TAB ────────────────────────────────────────────────────────────────
+function buildCodes(){
+  function table(cats){
+    return cats.map(cat=>`
+    <div style="background:white;border-radius:12px;margin-bottom:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+      <div style="background:${CAT_COLOR[cat]};padding:10px 14px"><span style="font-weight:800;color:white;font-size:14px">${CAT_ICON[cat]} ${cat}</span></div>
+      <table class="ref-table">
+        <thead><tr><th class="ref-th">CPT</th><th class="ref-th">Description</th><th class="ref-th">wRVU</th></tr></thead>
+        <tbody>${CPT_DATA.filter(c=>c.cat===cat).map((c,i)=>`
+          <tr style="background:${i%2?"#fafafa":"white"}">
+            <td class="ref-td ref-code" style="color:${CAT_COLOR[cat]}">${c.code}</td>
+            <td class="ref-td">${c.desc}</td>
+            <td class="ref-td" style="font-weight:800;font-size:15px;color:#1e3a5f">${c.wrvu.toFixed(2)}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>`).join("");
+  }
+  return `
+  <div class="ref-section-hdr" style="background:#1e3a5f"><span style="font-weight:800;color:white;font-size:14px">🔬 Endoscopy Procedures</span></div>
+  ${table(PROC_CATS)}
+  <div class="ref-section-hdr" style="background:#4c1d95;margin-top:16px"><span style="font-weight:800;color:white;font-size:14px">🏥 E&amp;M Codes</span></div>
+  ${table(EM_CATS)}
+  <div class="disclaimer"><strong>⚠️ Disclaimer:</strong> wRVU values reflect the 2026 CMS Physician Fee Schedule. Values may differ by payer, site of service, and locality. Always verify with your billing department and cms.gov.</div>`;
+}
+
+// ─── MODALS ──────────────────────────────────────────────────────────────────
+function buildClearModal(){
+  return `<div class="modal-bg">
+  <div class="modal" style="max-width:320px;text-align:center">
+    <div style="font-size:44px">⚠️</div>
+    <h3>Clear All Data?</h3>
+    <p style="color:#6b7280;font-size:14px;margin:0 0 20px">Permanently deletes all ${state.cases.length} cases. Export a backup first.</p>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="st({showClear:false})">Cancel</button>
+      <button class="modal-confirm modal-danger" onclick="clearAll()">Delete All</button>
+    </div>
+  </div></div>`;
+}
+
+function buildEditModal(ec, showProcGroup, showEMGroup, showExtraGroup){
+  return `<div class="modal-bg">
+  <div class="modal">
+    <h3>Edit Case</h3>
+    <div class="grid2">
+      <div><label class="lbl">Date</label><input class="input" type="date" value="${ec.date}" onchange="editField('date',this.value)"/></div>
+      <div><label class="lbl">Patient</label><input class="input" id="editPatient" type="text" value="${esc(ec.patient)}" oninput="editTextInput('patient',this.value)"/></div>
+      <div class="span2"><label class="lbl">Note</label><input class="input" id="editNote" type="text" value="${esc(ec.note)}" oninput="editTextInput('note',this.value)"/></div>
+    </div>
+    ${buildProcGroups(ec.procs,"e",showProcGroup,showEMGroup,undefined,showExtraGroup)}
+    <div class="summary-bar" style="margin-top:10px">
+      <span class="summary-codes">${ec.procs.length} proc${ec.procs.length!==1?"s":""}</span>
+      <span class="summary-wrvu">${caseWRVU(ec).toFixed(2)} wRVU</span>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="cancelEdit()">Cancel</button>
+      <button class="modal-confirm" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div></div>`;
+}
+
+// ─── ACTIONS ─────────────────────────────────────────────────────────────────
+function st(patch){ Object.assign(state,patch); render(); }
+function setTab(t){ st({tab:t}); }
+function toggleGroup(key){ st({[key]:!state[key]}); }
+function toggleMonth(mk){ state.expandedMonths[mk]=state.expandedMonths[mk]===false?true:false; render(); }
+
+// Text input handlers — update state only, NO render() to keep keyboard open
+function draftTextInput(k,v){
+  state.draft[k]=v;
+  const btn=document.querySelector(".save-case-btn");
+  if(btn) btn.disabled=!state.draft.patient.trim()||!state.draft.procs.length;
+}
+function editTextInput(k,v){
+  if(state.editing) state.editing[k]=v;
+}
+let _searchTimer=null;
+function doSearch(v){
+  state.searchQuery=v||"";
+  clearTimeout(_searchTimer);
+  _searchTimer=setTimeout(attachEvents,100);
+}
+
+function updDraft(k,v){ state.draft[k]=v; render(); }
+function dAddProc(cat){ const code=defaultCode(cat); state.draft.procs.push({id:uid(),code,cat}); render(); }
+function dRmProc(id){ state.draft.procs=state.draft.procs.filter(p=>p.id!==id); render(); }
+function dChgProc(id,code){ const cpt=cptFor(code); state.draft.procs=state.draft.procs.map(p=>p.id===id?{...p,code,cat:cpt?.cat||p.cat}:p); render(); }
+function dChgMod(id,mod,val){ state.draft.procs=state.draft.procs.map(p=>p.id===id?{...p,[mod]:val}:p); render(); }
+function commitDraft(){
+  if(!state.draft.patient.trim()||!state.draft.procs.length) return;
+  state.cases.unshift(state.draft);
+  state.draft=newCase(state.draft.date);
+  sortCases(); scheduleSave(); render();
+}
+function removeCase(id){ state.cases=state.cases.filter(c=>c.id!==id); scheduleSave(); render(); }
+
+function startEdit(id){ state.editing=JSON.parse(JSON.stringify(state.cases.find(c=>c.id===id))); render(); }
+function cancelEdit(){ st({editing:null}); }
+function editField(k,v){ state.editing[k]=v; render(); }
+function eAddProc(cat){ const code=defaultCode(cat); state.editing.procs.push({id:uid(),code,cat}); render(); }
+function eRmProc(id){ state.editing.procs=state.editing.procs.filter(p=>p.id!==id); render(); }
+function eChgProc(id,code){ const cpt=cptFor(code); state.editing.procs=state.editing.procs.map(p=>p.id===id?{...p,code,cat:cpt?.cat||p.cat}:p); render(); }
+function eChgMod(id,mod,val){ state.editing.procs=state.editing.procs.map(p=>p.id===id?{...p,[mod]:val}:p); render(); }
+function saveEdit(){ state.cases=state.cases.map(c=>c.id===state.editing.id?state.editing:c); state.editing=null; sortCases(); scheduleSave(); render(); }
+
+function saveApiKey(v){ state.apiKey=v; try{ localStorage.setItem("gi-wrvu-apikey",v); }catch(e){} }
+function clearAll(){ state.cases=[]; state.showClear=false; localStorage.removeItem(SK); render(); }
+
+// ── CSV helpers ──
+function csvEscape(v){
+  const s = String(v==null?"":v);
+  return (s.includes(",")||s.includes('"')||s.includes("\n")) ? `"${s.replace(/"/g,'""')}"` : s;
+}
+function csvRow(arr){ return arr.map(csvEscape).join(","); }
+
+function exportCSV(){
+  const headers = ["Date","Patient","Note","Category","CPT_Code","Description","Mod_59","Mod_33","Proc_wRVU","Case_Total_wRVU"];
+  const lines = [csvRow(headers)];
+  state.cases.forEach(c=>{
+    const total = caseWRVU(c).toFixed(2);
+    if(c.procs.length===0){
+      lines.push(csvRow([c.date, c.patient, c.note||"", "", "", "", "", "", "", total]));
+    } else {
+      c.procs.forEach((p,i)=>{
+        const cpt = cptFor(p.code);
+        lines.push(csvRow([
+          c.date, c.patient, c.note||"",
+          cpt?.cat||"", p.code, cpt?.desc||"",
+          p.mod59 ? "Yes" : "",
+          p.mod33 ? "Yes" : "",
+          cpt?.wrvu||"",
+          i===0 ? total : ""
+        ]));
+      });
+    }
+  });
+  const csv = lines.join("\n");
+  const blob = new Blob([csv], {type:"text/csv"});
+  const a = Object.assign(document.createElement("a"),{
+    href: URL.createObjectURL(blob),
+    download: `gi-wrvu-${todayStr()}.csv`
+  });
+  a.click();
+}
+
+function importCSV(el){
+  const file=el.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const lines = e.target.result.split(/\r?\n/).filter(l=>l.trim());
+      if(lines.length < 2){ alert("No data found in file."); return; }
+
+      // Parse header row
+      const headers = parseCSVLine(lines[0]);
+      const idx = {};
+      headers.forEach((h,i)=>{ idx[h.trim()]=i; });
+
+      // Required columns
+      if(idx["Date"]===undefined || idx["Patient"]===undefined){
+        alert("⚠️ File must have Date and Patient columns."); return;
+      }
+
+      // Group rows into cases
+      const caseMap = new Map();
+      for(let i=1;i<lines.length;i++){
+        const cols = parseCSVLine(lines[i]);
+        const date    = (cols[idx["Date"]]||"").trim();
+        const patient = (cols[idx["Patient"]]||"").trim();
+        const note    = (cols[idx["Note"]]||"").trim();
+        if(!patient) continue;
+        const key = `${date}__${patient}__${note}`;
+        if(!caseMap.has(key)){
+          caseMap.set(key,{id:uid(),date:date||todayStr(),patient,note,procs:[]});
+        }
+        const code = (cols[idx["CPT_Code"]]||"").trim();
+        if(code){
+          const cpt = cptFor(code);
+          caseMap.get(key).procs.push({id:uid(),code,cat:cpt?.cat||"EGD"});
+        }
+      }
+
+      const imported = Array.from(caseMap.values());
+      const existingKeys = new Set(state.cases.map(c=>`${c.date}__${c.patient}__${c.note||""}`));
+      const toAdd = imported.filter(c=>!existingKeys.has(`${c.date}__${c.patient}__${c.note||""}`));
+      state.cases = [...state.cases, ...toAdd];
+      sortCases(); scheduleSave(); render();
+      // Force immediate list population (bypass debounce)
+      clearTimeout(_searchTimer);
+      setTimeout(()=>doSearch(state.searchQuery||""), 50);
+      alert(toAdd.length===0 ? "No new cases found (already imported)." : `✅ Imported ${toAdd.length} case(s).`);
+    } catch(err){
+      alert("⚠️ Could not read file: "+err.message);
+    }
+  };
+  r.readAsText(file); el.value="";
+}
+
+function parseCSVLine(line){
+  const result=[]; let cur=""; let inQ=false;
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(ch==='"'){
+      if(inQ && line[i+1]==='"'){ cur+='"'; i++; }
+      else inQ=!inQ;
+    } else if(ch===','&&!inQ){
+      result.push(cur); cur="";
+    } else { cur+=ch; }
+  }
+  result.push(cur);
+  return result;
+}
+
+// Photo / AI
+function triggerFile(camera){
+  const el=document.getElementById("photoFile");
+  if(camera) el.setAttribute("capture","environment"); else el.removeAttribute("capture");
+  el.click();
+}
+// Compress image to max 1568px on longest side, quality 0.85, always jpeg
+function compressImage(file){
+  return new Promise((resolve, reject)=>{
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = ()=>{
+      URL.revokeObjectURL(url);
+      const MAX = 1568;
+      let {width:w, height:h} = img;
+      if(w > MAX || h > MAX){
+        if(w > h){ h = Math.round(h * MAX/w); w = MAX; }
+        else      { w = Math.round(w * MAX/h); h = MAX; }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      // Compress to jpeg, quality 0.85
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+      resolve(dataUrl.split(",")[1]); // return base64 only
+    };
+    img.onerror = ()=>reject(new Error("Image load failed"));
+    img.src = url;
+  });
+}
+
+async function handlePhoto(el){
+  const file=el.files[0]; if(!file) return;
+  const apiKey=state.apiKey||"";
+  if(!apiKey){
+    state.aiMsg="⚠️ Enter your Anthropic API key above first.";
+    render(); return;
+  }
+  el.value="";
+  state.aiLoading=true; state.aiMsg="⏳ Compressing image…"; state.pending=[];
+  render();
+
+  let fileData;
+  try{
+    fileData = await compressImage(file);
+  } catch(e){
+    // Fallback: read raw if canvas fails
+    fileData = await new Promise((res,rej)=>{
+      const r=new FileReader();
+      r.onload=()=>res(r.result.split(",")[1]);
+      r.onerror=()=>rej(new Error("File read failed"));
+      r.readAsDataURL(file);
+    });
+  }
+
+  state.aiMsg="⏳ Reading patient list with AI…"; render();
+  try{
+    // Abort controller for timeout (30s)
+  const MAX_RETRIES = 3;
+  let attempt = 0;
+  let res;
+
+  while(attempt < MAX_RETRIES){
+    attempt++;
+    const controller = new AbortController();
+    const timeout = setTimeout(()=>controller.abort(), 30000);
+
+    try{
+      res = await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        signal: controller.signal,
+        headers:{
+          "Content-Type":"application/json",
+          "x-api-key":apiKey,
+          "anthropic-version":"2023-06-01",
+          "anthropic-dangerous-direct-browser-access":"true"
+        },
+        body:JSON.stringify({
+          model:"claude-sonnet-4-20250514",max_tokens:2000,
+          messages:[{role:"user",content:[
+            {type:"image",source:{type:"base64",media_type:"image/jpeg",data:fileData}},
+            {type:"text",text:`This is a gastroenterologist's patient schedule or roster. Extract every patient on the list.
+For each patient return a JSON object with ONLY:
+  "name": the patient name or MRN/identifier exactly as written
+  "note": any brief annotation next to the patient (room, time, procedure type, etc) — copy verbatim, do NOT assign CPT codes
+Respond ONLY with a raw JSON array, no markdown. Example:
+[{"name":"Smith, John","note":"EGD 8am"},{"name":"Doe, Jane","note":"ERCP"}]`}
+          ]}]
+        })
+      });
+    } catch(netErr){
+      clearTimeout(timeout);
+      const msg = netErr.name==="AbortError"
+        ? "Request timed out after 30s. Check your internet connection."
+        : `Network error: ${netErr.message||"Could not reach Anthropic API"}. Make sure you are on WiFi or cellular and the API key is correct.`;
+      state.aiMsg=`⚠️ ${msg}`;
+      state.aiLoading=false; render(); return;
+    }
+    clearTimeout(timeout);
+
+    // Handle overloaded (529) or service unavailable (503) with retry
+    if(res.status === 529 || res.status === 503){
+      if(attempt < MAX_RETRIES){
+        const wait = attempt * 8; // 8s, 16s
+        // Countdown display
+        for(let s=wait; s>0; s--){
+          state.aiMsg=`⏳ API overloaded — retrying in ${s}s… (attempt ${attempt}/${MAX_RETRIES})`;
+          render();
+          await new Promise(r=>setTimeout(r,1000));
+        }
+        state.aiMsg=`⏳ Retrying… (attempt ${attempt+1}/${MAX_RETRIES})`;
+        render();
+        continue;
+      }
+      state.aiMsg=`⚠️ Anthropic API is temporarily overloaded. Please wait a minute and try again.`;
+      state.aiLoading=false; render(); return;
+    }
+
+    if(!res.ok){
+      const errData=await res.json().catch(()=>({}));
+      const errMsg=errData?.error?.message||`HTTP ${res.status}`;
+      state.aiMsg=`⚠️ API error: ${errMsg}`;
+      state.aiLoading=false; render(); return;
+    }
+
+    // Success — break out of retry loop
+    break;
+  }
+
+    const data=await res.json();
+    const text=(data.content||[]).map(b=>b.text||"").join("");
+    const parsed=JSON.parse(text.replace(/```json|```/g,"").trim());
+    state.pending=parsed.map(p=>({id:uid(),date:todayStr(),patient:p.name||"",note:"",selected:true,procs:[]}));
+    state.aiMsg=`✅ Found ${parsed.length} patient(s) — review and confirm below.`;
+  }catch(e){
+    state.aiMsg=`⚠️ Error: ${e.message||"Unknown error"}. Check your API key and internet connection.`;
+  }
+  state.aiLoading=false; render();
+}
+function togglePending(i,v){ state.pending[i].selected=v; render(); }
+function removePending(i){ state.pending.splice(i,1); render(); }
+function setPendingDate(i,v){ state.pending[i].date=v; render(); }
+function pendingAddProc(i,cat){ const code=defaultCode(cat); state.pending[i].procs.push({id:uid(),code,cat}); render(); }
+function pendingRmProc(i,pid){ state.pending[i].procs=state.pending[i].procs.filter(p=>p.id!==pid); render(); }
+function pendingChgProc(i,gi,code){ const cpt=cptFor(code); state.pending[i].procs[gi]={...state.pending[i].procs[gi],code,cat:cpt?.cat||state.pending[i].procs[gi].cat}; render(); }
+function confirmPending(){
+  const toAdd=state.pending
+    .filter(p=>p.selected)
+    .map(p=>({id:p.id,date:p.date,patient:p.patient,note:p.note,procs:p.procs.map(pr=>({id:pr.id,code:pr.code,cat:pr.cat}))}));
+  state.cases=[...toAdd,...state.cases];
+  sortCases();
+  state.pending=[]; state.aiMsg=""; state.tab="log";
+  scheduleSave(); render();
+}
+
+// ─── GOOGLE SHEETS ───────────────────────────────────────────────────────────
+function toInitials(name){
+  if(!name) return "—";
+  // Handle "Last, First" format
+  const clean = name.trim();
+  const commaIdx = clean.indexOf(",");
+  if(commaIdx > -1){
+    const last  = clean.slice(0,commaIdx).trim();
+    const first = clean.slice(commaIdx+1).trim();
+    const li = last[0]  ? last[0].toUpperCase()+"." : "";
+    const fi = first[0] ? first[0].toUpperCase()+"." : "";
+    return fi ? `${fi}${li}` : li;
+  }
+  // Handle "First Last" or MRN (no comma)
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if(parts.length===1) return parts[0]; // single token = MRN, keep as-is
+  return parts.map(p=>p[0].toUpperCase()+".").join("");
+}
+
+function buildSheetsModal(){
+  const url = state.sheetsUrl||"";
+  const status = state.sheetsStatus||"";
+  return `
+  <div class="modal-overlay" onclick="if(event.target===this)st({showSheets:false,sheetsStatus:''})">
+    <div class="modal-box">
+      <h3 class="modal-title">Sync to Google Sheets</h3>
+      <p style="font-size:13px;color:#6b7280;margin:0 0 16px;line-height:1.6">
+        Sends your wRVU data to a Google Sheet with <strong>patient names converted to initials</strong> — no PHI leaves your device.
+      </p>
+
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:9px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:#166534;line-height:1.6">
+        ✅ <strong>Names → Initials automatically.</strong> "Smith, John" becomes "J.S." before sending. MRNs are sent as-is since they are not PHI in isolation.
+      </div>
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:9px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:#1e40af;">
+        Only unsynced cases will be sent (<strong>${state.cases.filter(c=>!c.synced).length} unsynced case(s)</strong> of ${state.cases.length} total).
+        Previous days are not included.
+      </div>
+
+      <label class="lbl">Google Apps Script URL</label>
+      <input class="input" type="url" placeholder="https://script.google.com/macros/s/..." 
+        value="${esc(url)}" oninput="state.sheetsUrl=this.value"
+        style="margin-bottom:6px;font-size:12px;"/>
+      <p style="font-size:11px;color:#9ca3af;margin:0 0 16px;line-height:1.5">
+        Don't have a URL yet? See setup instructions below. ↓
+      </p>
+
+      ${status ? `<div style="padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:14px;
+        background:${status.startsWith("✅")?"#ecfdf5":status.startsWith("⏳")?"#eff6ff":"#fef2f2"};
+        color:${status.startsWith("✅")?"#065f46":status.startsWith("⏳")?"#1e40af":"#991b1b"}">
+        ${status}</div>` : ""}
+
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="st({showSheets:false,sheetsStatus:''})">Close</button>
+        <button class="btn-primary" onclick="syncToSheets()">↑ Sync Now</button>
+      </div>
+
+      <details style="margin-top:20px">
+        <summary style="font-size:12px;font-weight:700;color:#374151;cursor:pointer;padding:6px 0">
+          One-time Google Sheets setup instructions
+        </summary>
+        <div style="font-size:12px;color:#4b5563;line-height:1.8;margin-top:10px;background:#f8fafc;border-radius:8px;padding:12px;">
+          <strong>1.</strong> Go to <strong>sheets.google.com</strong> and create a new sheet.<br>
+          <strong>2.</strong> Click <strong>Extensions → Apps Script</strong>.<br>
+          <strong>3.</strong> Delete any existing code and paste this:<br>
+          <textarea readonly onclick="this.select()" style="width:100%;height:120px;font-size:10px;font-family:monospace;margin:8px 0;border:1px solid #e5e7eb;border-radius:6px;padding:8px;background:white;resize:none;">function doPost(e){
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  const rows = JSON.parse(e.postData.contents);
+  if(sheet.getLastRow()===0){
+    sheet.appendRow(["Date","Patient","Note","Category","CPT_Code","Description","Mod_59","Mod_33","Proc_wRVU","Case_Total_wRVU"]);
+  }
+  rows.forEach(r => sheet.appendRow(r));
+  return ContentService.createTextOutput("ok");
+}</textarea>
+          <strong>4.</strong> Click <strong>Deploy → New deployment</strong>.<br>
+          <strong>5.</strong> Type: <strong>Web app</strong>. Set "Who has access" to <strong>Anyone</strong>.<br>
+          <strong>6.</strong> Click <strong>Deploy</strong> → copy the URL → paste it above.<br>
+          <strong>7.</strong> Tap <strong>Sync Now</strong> — your data will appear in the sheet!
+        </div>
+      </details>
+    </div>
+  </div>`;
+}
+
+async function syncToSheets(){
+  const url = (state.sheetsUrl||"").trim();
+  if(!url){ state.sheetsStatus="⚠️ Please enter your Google Apps Script URL first."; render(); return; }
+
+  const toSync = state.cases.filter(c => !c.synced);
+
+  if(toSync.length === 0){
+    state.sheetsStatus=`✅ All cases already synced. Nothing new to send.`;
+    render(); return;
+  }
+
+  state.sheetsStatus="⏳ Syncing…"; render();
+
+  try{
+    const rows = [];
+    toSync.forEach(c=>{
+      const initials = toInitials(c.patient);
+      const total = caseWRVU(c).toFixed(2);
+      if(c.procs.length===0){
+        rows.push([c.date, initials, c.note||"", "", "", "", "", "", "", total]);
+      } else {
+        c.procs.forEach((p,i)=>{
+          const cpt = cptFor(p.code);
+          rows.push([
+            c.date, initials, c.note||"",
+            cpt?.cat||"", p.code, cpt?.desc||"",
+            p.mod59 ? "Yes" : "",
+            p.mod33 ? "Yes" : "",
+            cpt?.wrvu||"",
+            i===0 ? total : ""
+          ]);
+        });
+      }
+    });
+
+    await fetch(url, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(rows),
+      mode:"no-cors"
+    });
+    // Mark all synced cases
+    toSync.forEach(c => c.synced = true);
+    scheduleSave();
+    state.sheetsStatus=`✅ Synced ${toSync.length} case(s). Names anonymized to initials.`;
+    try{ localStorage.setItem("gi-wrvu-sheetsurl", url); }catch(e){}
+  }catch(err){
+    state.sheetsStatus=`⚠️ Sync failed: ${err.message}. Check your URL and try again.`;
+  }
+  render();
+}
+// ─── PDF EXPORT ──────────────────────────────────────────────────────────────
+function openAddCharge(sourceId){
+  const src = state.cases.find(c=>c.id===sourceId);
+  if(!src) return;
+  // Default date = next day after the source case
+  const srcDate = src.date || todayStr();
+  const nextDate = new Date(srcDate+"T12:00:00");
+  nextDate.setDate(nextDate.getDate()+1);
+  const nd = nextDate.toISOString().slice(0,10);
+  state.addChargeDraft = {
+    id: uid(),
+    patient: src.patient,
+    note: "",
+    date: nd,
+    procs: [],
+    showProcGroup: true,
+    showEMGroup: false,
+    showExtraGroup: false,
+  };
+  state.addChargeSearch = "";
+  state.showAddCharge = true;
+  render();
+}
+
+function buildAddChargeModal(){
+  const d = state.addChargeDraft;
+  const q = (state.addChargeSearch||"").toLowerCase().trim();
+  // Unique patient names for search
+  const uniquePatients = [...new Map(state.cases.map(c=>[c.patient.toLowerCase().trim(), c.patient])).values()];
+  const filtered = q ? uniquePatients.filter(n=>n.toLowerCase().includes(q)) : uniquePatients;
+  const canSave = d.patient.trim() && d.procs.length>0;
+  const total = d.procs.reduce((s,p)=>s+(cptFor(p.code)?.wrvu||0),0);
+
+  return `
+  <div class="modal-backdrop" onclick="st({showAddCharge:false,addChargeDraft:null})">
+    <div class="modal-sheet" style="max-height:88vh;overflow-y:auto" onclick="event.stopPropagation()">
+      <div class="modal-title">➕ Add Charge — Another Day</div>
+
+      <!-- Patient search -->
+      <label class="lbl">Patient / MRN</label>
+      <div style="position:relative;margin-bottom:6px">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:13px;pointer-events:none">🔍</span>
+        <input class="input" type="search" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
+          placeholder="Search existing patients…"
+          value="${esc(state.addChargeSearch)}"
+          oninput="acSearch(this.value)"
+          style="padding-left:32px;margin:0;background:white"/>
+      </div>
+      ${filtered.length && q ? `
+      <div style="background:white;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px;max-height:140px;overflow-y:auto">
+        ${filtered.slice(0,8).map(name=>`
+          <div onclick="acPickPatient('${esc(name)}')"
+            style="padding:9px 12px;font-size:13px;font-weight:${d.patient===name?'700':'400'};
+            background:${d.patient===name?'#eff6ff':'white'};color:${d.patient===name?'#1d4ed8':'#374151'};
+            cursor:pointer;border-bottom:1px solid #f1f5f9">${esc(name)}</div>
+        `).join("")}
+      </div>` : ""}
+
+      <!-- Or type new name -->
+      <input class="input" type="text" placeholder="Or type new patient name / MRN"
+        value="${esc(d.patient)}"
+        oninput="acSetField('patient',this.value)"
+        style="margin-bottom:10px"/>
+
+      <!-- Date & Note -->
+      <div class="grid2" style="margin-bottom:10px">
+        <div>
+          <label class="lbl">Date</label>
+          <input class="input" type="date" value="${d.date}" onchange="acSetField('date',this.value)" style="margin:0"/>
+        </div>
+        <div>
+          <label class="lbl">Note (optional)</label>
+          <input class="input" type="text" placeholder="e.g. HD2 follow-up" value="${esc(d.note)}" oninput="acSetField('note',this.value)" style="margin:0"/>
+        </div>
+      </div>
+
+      <!-- Procedures -->
+      <div style="margin-bottom:10px">
+        ${buildProcGroups(d.procs,"ac",d.showProcGroup,d.showEMGroup,"acToggleGroup",d.showExtraGroup)}
+      </div>
+
+      <!-- wRVU summary -->
+      ${d.procs.length>0?`
+      <div class="summary-bar" style="margin-bottom:12px">
+        <span class="summary-codes">${d.procs.length} proc${d.procs.length!==1?"s":""}</span>
+        <span class="summary-wrvu">${total.toFixed(2)} wRVU</span>
+      </div>`:""}
+
+      <div class="grid2">
+        <button class="modal-cancel" onclick="st({showAddCharge:false,addChargeDraft:null})">Cancel</button>
+        <button class="save-case-btn" style="margin:0" ${canSave?"":"disabled"} onclick="commitAddCharge()">+ Save Charge</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function acSearch(v){
+  state.addChargeSearch = v;
+  render();
+}
+function acPickPatient(name){
+  state.addChargeDraft.patient = name;
+  state.addChargeSearch = "";
+  render();
+}
+function acSetField(k,v){
+  state.addChargeDraft[k] = v;
+  render();
+}
+function acToggleGroup(key){ if(state.addChargeDraft) { state.addChargeDraft[key]=!state.addChargeDraft[key]; render(); } }
+window.acToggleGroup=acToggleGroup;
+function acAddProc(cat){ const code=defaultCode(cat); state.addChargeDraft.procs.push({id:uid(),code,cat}); render(); }
+function acRmProc(id){ state.addChargeDraft.procs=state.addChargeDraft.procs.filter(p=>p.id!==id); render(); }
+function acChgProc(id,code){ const cpt=cptFor(code); state.addChargeDraft.procs=state.addChargeDraft.procs.map(p=>p.id===id?{...p,code,cat:cpt?.cat||p.cat}:p); render(); }
+function acChgMod(id,mod,val){ state.addChargeDraft.procs=state.addChargeDraft.procs.map(p=>p.id===id?{...p,[mod]:val}:p); render(); }
+function commitAddCharge(){
+  const d = state.addChargeDraft;
+  if(!d||!d.patient.trim()||!d.procs.length) return;
+  const newCase = {id:d.id, date:d.date, patient:d.patient, note:d.note, procs:d.procs.map(p=>({id:p.id,code:p.code,cat:p.cat,mod59:p.mod59,mod33:p.mod33}))};
+  // Insert in date order
+  state.cases.unshift(newCase);
+  sortCases();
+  state.showAddCharge = false;
+  state.addChargeDraft = null;
+  scheduleSave(); render();
+}
+window.openAddCharge=openAddCharge; window.acSearch=acSearch; window.acPickPatient=acPickPatient;
+window.acSetField=acSetField; window.acAddProc=acAddProc; window.acRmProc=acRmProc;
+window.acChgProc=acChgProc; window.acChgMod=acChgMod; window.commitAddCharge=commitAddCharge;
+
+// ─── DOCUMENT CAPTURE ────────────────────────────────────────────────────────
+function triggerDocCapture(caseId){
+  const el=document.getElementById("docFile-"+caseId);
+  if(el){ el.removeAttribute("capture"); el.click(); }
+}
+
+async function handleDocCapture(caseId, input){
+  const file=input.files[0]; if(!file) return;
+  input.value="";
+  const c=state.cases.find(x=>x.id===caseId); if(!c) return;
+  if(!c.docs) c.docs=[];
+
+  state.saveStatus="saving"; render();
+
+  const isPDF = file.type==="application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+  const docName = `${(c.patient||"doc").replace(/[^a-z0-9]/gi,"-")}-${c.date}-${Date.now().toString(36)}.pdf`;
+
+  try{
+    let pdfB64;
+
+    if(isPDF){
+      // Already a PDF — read directly as base64
+      pdfB64 = await new Promise((res,rej)=>{
+        const r=new FileReader();
+        r.onload=()=>res(r.result.split(",")[1]);
+        r.onerror=()=>rej(new Error("File read failed"));
+        r.readAsDataURL(file);
+      });
+    } else {
+      // Image — compress then wrap in jsPDF
+      const b64 = await compressImage(file);
+      if(!window.jspdf){ alert("PDF library still loading — try again in a moment."); return; }
+      const {jsPDF} = window.jspdf;
+      const doc = new jsPDF({orientation:"portrait",unit:"mm",format:"letter"});
+      const PW=215.9, PH=279.4, M=10;
+      doc.setFillColor(30,58,95);
+      doc.rect(0,0,PW,18,"F");
+      doc.setTextColor(255,255,255);
+      doc.setFont("helvetica","bold"); doc.setFontSize(11);
+      doc.text(`${c.patient||"Patient"} — ${dateLabel(c.date)}`, M, 8);
+      doc.setFont("helvetica","normal"); doc.setFontSize(8);
+      doc.text(`${c.note||""} · Generated ${todayStr()}`, M, 14);
+      const imgW=PW-M*2, maxH=PH-22-M;
+      const imgEl=new Image();
+      await new Promise(res=>{ imgEl.onload=res; imgEl.src="data:image/jpeg;base64,"+b64; });
+      const ratio=imgEl.naturalHeight/imgEl.naturalWidth;
+      const imgH=Math.min(maxH, imgW*ratio);
+      doc.addImage("data:image/jpeg;base64,"+b64,"JPEG",M,20,imgW,imgH);
+      doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(156,163,175);
+      doc.text(`${c.patient||""} · ${dateLabel(c.date)} · GI wRVU Tracker`, M, PH-4);
+      pdfB64 = doc.output("datauristring").split(",")[1];
+    }
+
+    c.docs.push({ id:uid(), name:docName, b64:pdfB64, created:todayStr() });
+    scheduleSave();
+    render();
+  } catch(e){
+    alert("Error saving document: "+e.message);
+    state.saveStatus=""; render();
+  }
+}
+
+function openDocModal(caseId){ st({docModal:{caseId}}); }
+function closeDocModal(){ st({docModal:null}); }
+function deleteDoc(caseId,docId){
+  if(!confirm("Delete this document? This cannot be undone.")) return;
+  const c=state.cases.find(x=>x.id===caseId); if(!c) return;
+  c.docs=(c.docs||[]).filter(d=>d.id!==docId);
+  scheduleSave(); render();
+}
+function downloadDocById(caseId,docId){
+  const c=state.cases.find(x=>x.id===caseId); if(!c) return;
+  const d=(c.docs||[]).find(x=>x.id===docId); if(!d) return;
+  downloadDoc(d.b64,d.name);
+}
+function downloadDoc(b64,name){
+  const link=document.createElement("a");
+  link.href="data:application/pdf;base64,"+b64;
+  link.download=name;
+  link.click();
+}
+
+function buildDocModal(){
+  const {caseId}=state.docModal;
+  const c=state.cases.find(x=>x.id===caseId);
+  if(!c) return "";
+  const docs=c.docs||[];
+  return `
+  <div class="modal-backdrop" onclick="closeDocModal()">
+    <div class="modal-sheet" style="max-height:88vh;overflow-y:auto" onclick="event.stopPropagation()">
+      <div class="modal-title">📄 Documents — ${esc(c.patient||"Patient")}</div>
+      <div style="font-size:12px;color:#6b7280;margin-bottom:14px">${dateLabel(c.date)}${c.note?" · "+esc(c.note):""}</div>
+
+      ${docs.length===0
+        ?`<div style="text-align:center;padding:24px 0;color:#9ca3af;font-size:13px">No documents yet.<br>Tap <strong>Add Document</strong> on the case card to take a photo.</div>`
+        :docs.map(d=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;margin-bottom:8px">
+          <div style="min-width:0;flex:1">
+            <div style="font-size:12px;font-weight:700;color:#1e3a5f;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📄 ${esc(d.name)}</div>
+            <div style="font-size:10px;color:#9ca3af;margin-top:2px">Added ${dateLabel(d.created)}</div>
+          </div>
+          <div style="display:flex;gap:6px;margin-left:10px;flex-shrink:0">
+            <button onclick="viewDocInline('${caseId}','${d.id}')" style="padding:6px 10px;border-radius:8px;border:1px solid #d1fae5;background:#f0fdf4;font-size:12px;font-weight:600;color:#059669;cursor:pointer">👁 View</button>
+            <button onclick="downloadDocById('${caseId}','${d.id}')" style="padding:6px 12px;border-radius:8px;border:1px solid #bfdbfe;background:#eff6ff;font-size:12px;font-weight:600;color:#2563eb;cursor:pointer">⬇ Save</button>
+            <button onclick="deleteDoc('${caseId}','${d.id}')" style="padding:6px 12px;border-radius:8px;border:1px solid #fecaca;background:#fff5f5;font-size:12px;font-weight:700;color:#dc2626;cursor:pointer">🗑 Delete</button>
+          </div>
+        </div>`).join("")
+      }
+
+      <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button onclick="closeDocModal();setTimeout(()=>triggerDocCapture('${caseId}'),100)"
+          style="padding:11px;border-radius:10px;border:1px solid #e2e8f0;background:#f8fafc;font-size:13px;font-weight:700;color:#374151;cursor:pointer">
+          📷 Add Another
+        </button>
+        <button class="modal-cancel" onclick="closeDocModal()">Close</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function viewDocInline(caseId,docId){
+  const c=state.cases.find(x=>x.id===caseId); if(!c) return;
+  const d=(c.docs||[]).find(x=>x.id===docId); if(!d) return;
+  // iOS Safari cannot embed PDF data URIs in iframes.
+  // Best approach: download the blob and open via object URL, or fall back to download.
+  try{
+    const bytes=atob(d.b64);
+    const arr=new Uint8Array(bytes.length);
+    for(let i=0;i<bytes.length;i++) arr[i]=bytes.charCodeAt(i);
+    const blob=new Blob([arr],{type:"application/pdf"});
+    const url=URL.createObjectURL(blob);
+    // Show full-screen overlay with iframe
+    let overlay=document.getElementById("docViewOverlay");
+    if(!overlay){
+      overlay=document.createElement("div");
+      overlay.id="docViewOverlay";
+      overlay.style.cssText="position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column";
+      document.body.appendChild(overlay);
+    }
+    overlay.innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;background:#1e3a5f;padding:10px 14px;flex-shrink:0">
+        <span style="color:white;font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${esc(d.name)}</span>
+        <div style="display:flex;gap:8px;margin-left:10px;flex-shrink:0">
+          <button onclick="downloadDocById('${caseId}','${docId}')" style="padding:6px 12px;border-radius:7px;background:#2563eb;border:none;color:white;font-size:12px;font-weight:700;cursor:pointer">⬇ Save</button>
+          <button onclick="document.getElementById('docViewOverlay').style.display='none'" style="padding:6px 12px;border-radius:7px;background:#6b7280;border:none;color:white;font-size:12px;font-weight:700;cursor:pointer">✕ Close</button>
+        </div>
+      </div>
+      <iframe src="${url}" style="flex:1;width:100%;border:none" onload="URL.revokeObjectURL('${url}')"></iframe>`;
+    overlay.style.display="flex";
+  } catch(e){
+    // Fallback: just download it
+    downloadDocById(caseId,docId);
+  }
+}
+window.viewDocInline=viewDocInline;
+window.triggerDocCapture=triggerDocCapture; window.handleDocCapture=handleDocCapture;
+window.openDocModal=openDocModal; window.closeDocModal=closeDocModal;
+window.deleteDoc=deleteDoc; window.downloadDoc=downloadDoc; window.downloadDocById=downloadDocById;
+window.previewDoc=viewDocInline; window.viewDocInline=viewDocInline;
+
+function buildPdfModal(){
+  const from = state.pdfFrom||"";
+  const to   = state.pdfTo||"";
+  // Count how many cases fall in range
+  const filtered = state.cases.filter(c=>{
+    if(from && c.date < from) return false;
+    if(to   && c.date > to)   return false;
+    return true;
+  });
+  const today = todayStr();
+  const thisMonth = today.slice(0,7);
+  const thisYear  = today.slice(0,4);
+  return `
+  <div class="modal-backdrop" onclick="st({showPdfModal:false})">
+    <div class="modal-sheet" onclick="event.stopPropagation()">
+      <div class="modal-title">🖨 Print PDF</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        <button onclick="setPdfPreset('all')"
+          style="padding:10px 6px;border-radius:10px;border:2px solid ${!from&&!to?'#2563eb':'#e2e8f0'};background:${!from&&!to?'#eff6ff':'white'};font-size:12px;font-weight:700;color:${!from&&!to?'#1d4ed8':'#374151'};cursor:pointer">
+          All Time<br><span style="font-size:10px;font-weight:400;color:#6b7280">${state.cases.length} cases</span>
+        </button>
+        <button onclick="setPdfPreset('ytd')"
+          style="padding:10px 6px;border-radius:10px;border:2px solid ${from===thisYear+'-01-01'&&to===today?'#2563eb':'#e2e8f0'};background:${from===thisYear+'-01-01'&&to===today?'#eff6ff':'white'};font-size:12px;font-weight:700;color:${from===thisYear+'-01-01'&&to===today?'#1d4ed8':'#374151'};cursor:pointer">
+          Year to Date<br><span style="font-size:10px;font-weight:400;color:#6b7280">${state.cases.filter(c=>c.date.slice(0,4)===thisYear).length} cases</span>
+        </button>
+        <button onclick="setPdfPreset('mtd')"
+          style="padding:10px 6px;border-radius:10px;border:2px solid ${from===thisMonth+'-01'&&to===today?'#2563eb':'#e2e8f0'};background:${from===thisMonth+'-01'&&to===today?'#eff6ff':'white'};font-size:12px;font-weight:700;color:${from===thisMonth+'-01'&&to===today?'#1d4ed8':'#374151'};cursor:pointer">
+          This Month<br><span style="font-size:10px;font-weight:400;color:#6b7280">${state.cases.filter(c=>c.date.slice(0,7)===thisMonth).length} cases</span>
+        </button>
+        <button onclick="setPdfPreset('custom')"
+          style="padding:10px 6px;border-radius:10px;border:2px solid #e2e8f0;background:white;font-size:12px;font-weight:700;color:#374151;cursor:pointer">
+          Custom Range<br><span style="font-size:10px;font-weight:400;color:#6b7280">Pick dates below</span>
+        </button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+        <div>
+          <label class="lbl">From</label>
+          <input class="input" type="date" value="${from}" onchange="st({pdfFrom:this.value})" style="margin:0"/>
+        </div>
+        <div>
+          <label class="lbl">To</label>
+          <input class="input" type="date" value="${to}" onchange="st({pdfTo:this.value})" style="margin:0"/>
+        </div>
+      </div>
+
+      <div style="background:#f8fafc;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#374151">
+        <strong style="color:#1e3a5f">${filtered.length} case${filtered.length!==1?"s":""}</strong> will be included
+        ${from||to ? `<span style="color:#6b7280"> · ${from?dateLabel(from):"start"} → ${to?dateLabel(to):"today"}</span>` : `<span style="color:#6b7280"> (all time)</span>`}
+        ${(()=>{const dc=filtered.reduce((s,c)=>s+(c.docs||[]).length,0);return dc>0?`<br><span style="color:#059669;font-weight:600">+ ${dc} patient document${dc!==1?"s":""} will be appended</span>`:"";})()} 
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button class="modal-cancel" onclick="st({showPdfModal:false})">Cancel</button>
+        <button class="save-case-btn" style="margin:0" ${filtered.length===0?"disabled":""} onclick="exportPDF()">Generate PDF</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function setPdfPreset(p){
+  const today=todayStr();
+  const thisMonth=today.slice(0,7);
+  const thisYear=today.slice(0,4);
+  if(p==="all")    st({pdfFrom:"",pdfTo:""});
+  else if(p==="ytd") st({pdfFrom:thisYear+"-01-01",pdfTo:today});
+  else if(p==="mtd") st({pdfFrom:thisMonth+"-01",pdfTo:today});
+  else if(p==="custom") { /* leave dates as-is so user can edit */ }
+}
+window.setPdfPreset=setPdfPreset;
+
+async function exportPDF(){
+  if(!window.jspdf){ alert("PDF library still loading — please try again in a moment."); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:"portrait", unit:"mm", format:"letter" });
+
+  const from = state.pdfFrom||"";
+  const to   = state.pdfTo||"";
+  const cases = state.cases.filter(c=>{
+    if(from && c.date < from) return false;
+    if(to   && c.date > to)   return false;
+    return true;
+  });
+  if(!cases.length){ alert("No cases in selected range."); return; }
+  st({showPdfModal:false});
+
+  const today = todayStr();
+  const rangeLabel = from||to ? `${from?dateLabel(from):"Start"} – ${to?dateLabel(to):"Today"}` : "All Time";
+  const thisMonth = today.slice(0,7);
+  const thisYear  = today.slice(0,4);
+  const grandTotal = cases.reduce((s,c)=>s+caseWRVU(c),0);
+  const mtdWRVU = cases.filter(c=>c.date.slice(0,7)===thisMonth).reduce((s,c)=>s+caseWRVU(c),0);
+  const ytdWRVU = cases.filter(c=>c.date.slice(0,4)===thisYear).reduce((s,c)=>s+caseWRVU(c),0);
+
+  const NAVY="#1e3a5f", BLUE="#2563eb", GRAY="#6b7280", LIGHT="#f1f5f9";
+  const PW=215.9, ML=12, MR=12, CW=PW-ML-MR;
+
+  // ── Header banner ──
+  doc.setFillColor(30,58,95);
+  doc.rect(0,0,PW,22,"F");
+  doc.setTextColor(255,255,255);
+  doc.setFont("helvetica","bold"); doc.setFontSize(16);
+  doc.text("Billing & wRVU Case Log", ML, 10);
+  doc.setFont("helvetica","normal"); doc.setFontSize(8);
+  doc.text(`Generated: ${today}  ·  Range: ${rangeLabel}  ·  EGD · Colonoscopy · ERCP · Consults · Follow-ups`, ML, 16);
+  doc.text(`Page 1`, PW-MR, 16, {align:"right"});
+
+  // ── KPI summary boxes ──
+  const kpis=[
+    ["Today wRVU", cases.filter(c=>c.date===today).reduce((s,c)=>s+caseWRVU(c),0).toFixed(2)],
+    ["Month to Date", mtdWRVU.toFixed(2)],
+    ["Year to Date", ytdWRVU.toFixed(2)],
+    ["All-Time Total", grandTotal.toFixed(2)],
+    ["Total Cases", cases.length],
+  ];
+  const boxW = CW/kpis.length - 2;
+  let bx = ML;
+  kpis.forEach(([label,val])=>{
+    doc.setFillColor(241,245,249);
+    doc.roundedRect(bx, 26, boxW, 14, 2, 2, "F");
+    doc.setTextColor(30,58,95); doc.setFont("helvetica","bold"); doc.setFontSize(10);
+    doc.text(String(val), bx+boxW/2, 32, {align:"center"});
+    doc.setTextColor(107,114,128); doc.setFont("helvetica","normal"); doc.setFontSize(6.5);
+    doc.text(label, bx+boxW/2, 37, {align:"center"});
+    bx += boxW+2.5;
+  });
+
+  // ── Case log table ──
+  const rows=[];
+  const byMonth={};
+  cases.forEach(c=>{
+    const k=monthKey(c.date);
+    if(!byMonth[k]) byMonth[k]=[];
+    byMonth[k].push(c);
+  });
+  const monthKeys=Object.keys(byMonth).sort().reverse();
+
+  monthKeys.forEach(mk=>{
+    // Month header row (spanning)
+    rows.push([{content: monthLabel(mk).toUpperCase(), colSpan:7,
+      styles:{fillColor:[30,58,95],textColor:[255,255,255],fontStyle:"bold",fontSize:8,cellPadding:3}}]);
+
+    byMonth[mk].forEach(c=>{
+      const total=caseWRVU(c);
+      if(c.procs.length===0){
+        rows.push([c.date, c.patient||"—", c.note||"", "","","", total.toFixed(2)]);
+      } else {
+        c.procs.forEach((p,i)=>{
+          const cpt=cptFor(p.code);
+          const mods=[p.mod59?"59":"",p.mod33?"33":""].filter(Boolean).join("/");
+          rows.push([
+            i===0?c.date:"",
+            i===0?(c.patient||"—"):"",
+            i===0?(c.note||""):"",
+            cpt?.cat||"",
+            p.code+(mods?`-${mods}`:""),
+            cpt?.desc||"",
+            i===0?total.toFixed(2):""
+          ]);
+        });
+      }
+    });
+  });
+
+  doc.autoTable({
+    startY: 44,
+    head:[["Date","Patient","Note","Category","CPT","Description","wRVU"]],
+    body: rows,
+    margin:{left:ML, right:MR},
+    styles:{fontSize:7, cellPadding:2, overflow:"linebreak", lineColor:[225,229,235], lineWidth:0.2},
+    headStyles:{fillColor:[37,99,235], textColor:255, fontStyle:"bold", fontSize:7.5},
+    alternateRowStyles:{fillColor:[248,250,252]},
+    columnStyles:{
+      0:{cellWidth:18},  // Date
+      1:{cellWidth:32},  // Patient
+      2:{cellWidth:28},  // Note
+      3:{cellWidth:22},  // Category
+      4:{cellWidth:16},  // CPT
+      5:{cellWidth:"auto"}, // Description
+      6:{cellWidth:14, halign:"right", fontStyle:"bold"}, // wRVU
+    },
+    didParseCell(data){
+      // Highlight today's rows lightly
+      if(data.row.raw && data.row.raw[0]===today && data.section==="body"){
+        data.cell.styles.fillColor=[239,246,255];
+      }
+    },
+    didDrawPage(data){
+      // Footer on every page
+      const pg=doc.getNumberOfPages();
+      doc.setFont("helvetica","normal"); doc.setFontSize(7); doc.setTextColor(156,163,175);
+      doc.text(`Billing & wRVU Tracker  ·  ${today}  ·  Page ${data.pageNumber}`, ML, 275);
+      doc.text(`All-Time Total: ${grandTotal.toFixed(2)} wRVU`, PW-MR, 275, {align:"right"});
+    }
+  });
+
+  const fname = from||to ? `gi-wrvu-${from||"start"}-to-${to||today}.pdf` : `gi-wrvu-all-${today}.pdf`;
+
+  // ── Append patient documents ──
+  const allDocs = cases.flatMap(c=>(c.docs||[]).map(d=>({...d, patient:c.patient, date:c.date})));
+
+  if(allDocs.length > 0 && window.PDFLib){
+    try{
+      // Export main log as bytes
+      const mainBytes = doc.output("arraybuffer");
+      const { PDFDocument } = window.PDFLib;
+      const merged = await PDFDocument.load(mainBytes);
+
+      // Section divider page
+      const divPage = merged.addPage([612, 792]);
+      divPage.drawRectangle({x:0, y:0, width:612, height:792, color:PDFLib.rgb(0.118,0.227,0.373)});
+      divPage.drawText("PATIENT DOCUMENTS", {x:60, y:420, size:28, color:PDFLib.rgb(1,1,1), font: await merged.embedFont(PDFLib.StandardFonts.HelveticaBold)});
+      divPage.drawText(`${allDocs.length} document${allDocs.length!==1?"s":""} attached`, {x:60, y:385, size:14, color:PDFLib.rgb(0.7,0.8,0.9), font: await merged.embedFont(PDFLib.StandardFonts.Helvetica)});
+
+      // Append each stored PDF
+      for(const d of allDocs){
+        try{
+          const bytes = Uint8Array.from(atob(d.b64), ch=>ch.charCodeAt(0));
+          const srcPdf = await PDFDocument.load(bytes);
+          const copiedPages = await merged.copyPages(srcPdf, srcPdf.getPageIndices());
+          copiedPages.forEach(p=>merged.addPage(p));
+        } catch(e){ /* skip corrupt doc */ }
+      }
+
+      const mergedBytes = await merged.save();
+      const blob = new Blob([mergedBytes], {type:"application/pdf"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = fname; a.click();
+      setTimeout(()=>URL.revokeObjectURL(url), 5000);
+      return;
+    } catch(e){
+      // Fall back to plain save if merge fails
+    }
+  }
+
+  doc.save(fname);
+}
+
+window.setTab=setTab; window.toggleGroup=toggleGroup; window.toggleMonth=toggleMonth;
+window.updDraft=updDraft; window.dAddProc=dAddProc; window.dRmProc=dRmProc; window.dChgProc=dChgProc; window.dChgMod=dChgMod;
+function clearSearch(){
+  state.searchQuery="";
+  const el=document.getElementById("caseSearch");
+  if(el) el.value="";
+  doSearch("");
+}
+window.draftTextInput=draftTextInput; window.editTextInput=editTextInput; window.doSearch=doSearch; window.clearSearch=clearSearch;
+window.commitDraft=commitDraft; window.removeCase=removeCase;
+window.startEdit=startEdit; window.cancelEdit=cancelEdit; window.editField=editField;
+window.eAddProc=eAddProc; window.eRmProc=eRmProc; window.eChgProc=eChgProc; window.eChgMod=eChgMod; window.saveEdit=saveEdit;
+window.clearAll=clearAll; window.exportCSV=exportCSV; window.importCSV=importCSV; window.syncToSheets=syncToSheets; window.exportPDF=exportPDF;
+window.triggerFile=triggerFile; window.handlePhoto=handlePhoto;
+window.togglePending=togglePending; window.removePending=removePending; window.setPendingDate=setPendingDate;
+window.pendingAddProc=pendingAddProc; window.pendingRmProc=pendingRmProc;
+window.pendingChgProc=pendingChgProc; window.confirmPending=confirmPending;
+window.st=st;
+
+function attachEvents(){
+  if(state.tab==="log"){
+    // Restore search input value after render without triggering oninput
+    const searchEl=document.getElementById("caseSearch");
+    if(searchEl && searchEl.value !== (state.searchQuery||"")) searchEl.value=state.searchQuery||"";
+    // Populate case list
+    const listEl=document.getElementById("caseList");
+    if(listEl){
+      const q=(state.searchQuery||"").toLowerCase().trim();
+      const toks=q.split(/\s+/).filter(Boolean);
+      const vis=toks.length?state.cases.filter(c=>{
+        const p=(c.date||"").split("-");
+        const mi=parseInt(p[1]||"0",10);
+        const hay=[
+          c.patient||"",p[0]||"",String(mi),String(parseInt(p[2]||"0",10)),
+          mi>=1?MONTHS[mi-1].toLowerCase():"",
+          mi>=1?MONTHS_FULL[mi-1].toLowerCase():"",
+          mi>=1?mi+"/"+parseInt(p[2]||"0",10):"",
+          c.note||"",...c.procs.map(pr=>pr.code||"")
+        ].join(" ").toLowerCase();
+        return toks.every(t=>hay.includes(t));
+      }):state.cases;
+      listEl.innerHTML=vis.length===0
+        ?(state.cases.length===0
+          ?`<div class="empty"><div class="icon"></div><p>No cases yet.<br>Add manually or upload a patient list.</p></div>`
+          :`<div class="empty" style="padding:24px 20px"><p style="margin:0;font-size:13px;color:#6b7280">No cases match your search.</p></div>`)
+        :vis.map(c=>{
+          const t=caseWRVU(c);
+          const bC={};
+          c.procs.forEach(p=>{const cpt=cptFor(p.code);const cat=cpt?.cat||"?";if(!bC[cat])bC[cat]=[];bC[cat].push({...p,cpt});});
+          return `<div class="case-card">
+            <div class="case-top">
+              <div><span class="case-name">${esc(c.patient)||"—"}</span><span class="case-meta">${dateLabel(c.date)}</span>${c.note?`<span class="case-note">· ${esc(c.note)}</span>`:""}</div>
+              <div class="case-actions">
+                <span class="case-wrvu">${t.toFixed(2)}</span>
+                <button class="icon-btn" title="Add charge for another day" onclick="openAddCharge('${c.id}')" style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe">➕</button>
+                <button class="icon-btn" onclick="startEdit('${c.id}')" style="margin-left:8px">✏️</button>
+                <button class="delete-btn" onclick="removeCase('${c.id}')">Delete</button>
+              </div>
+            </div>
+            ${Object.entries(bC).map(([cat,ps])=>`
+              <div class="cat-row">
+                <span class="cat-label" style="color:${CAT_COLOR[cat]||'#6b7280'}">${CAT_ICON[cat]||""} ${cat}</span>
+                ${ps.map(p=>p.cpt?`<span class="chip" style="background:${CAT_BG[p.cpt.cat]};color:${CAT_COLOR[p.cpt.cat]}">${p.cpt.code} · ${p.cpt.wrvu.toFixed(2)}</span>`:"").join("")}
+              </div>`).join("")}
+            <!-- Doc section -->
+            <div style="margin-top:8px;padding-top:8px;border-top:1px solid #f1f5f9">
+              ${(c.docs||[]).map(d=>`
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;background:#f8fafc;border-radius:8px;padding:7px 10px;border:1px solid #e2e8f0">
+                <span style="font-size:12px;font-weight:600;color:#1e3a5f;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📄 ${esc(d.name)}</span>
+                <button onclick="viewDocInline('${c.id}','${d.id}')" style="padding:4px 9px;border-radius:7px;border:1px solid #d1fae5;background:#f0fdf4;font-size:11px;font-weight:700;color:#059669;cursor:pointer;white-space:nowrap">👁 View</button>
+                <button onclick="downloadDocById('${c.id}','${d.id}')" style="padding:4px 9px;border-radius:7px;border:1px solid #bfdbfe;background:#eff6ff;font-size:11px;font-weight:700;color:#2563eb;cursor:pointer;white-space:nowrap">⬇ Save</button>
+                <button onclick="deleteDoc('${c.id}','${d.id}')" style="padding:4px 9px;border-radius:7px;border:1px solid #fecaca;background:#fff5f5;font-size:11px;font-weight:700;color:#dc2626;cursor:pointer;white-space:nowrap">🗑</button>
+              </div>`).join("")}
+              <input type="file" id="docFile-${c.id}" accept="image/*,application/pdf,.pdf" style="display:none" onchange="handleDocCapture('${c.id}',this)"/>
+              <input type="file" id="docCamera-${c.id}" accept="image/*" capture="environment" style="display:none" onchange="handleDocCapture('${c.id}',this)"/>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+                <button onclick="document.getElementById('docCamera-${c.id}').click()" style="display:flex;align-items:center;justify-content:center;gap:5px;padding:6px 8px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;font-size:12px;font-weight:600;color:#374151;cursor:pointer">
+                  📷 Camera
+                </button>
+                <button onclick="document.getElementById('docFile-${c.id}').click()" style="display:flex;align-items:center;justify-content:center;gap:5px;padding:6px 8px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;font-size:12px;font-weight:600;color:#374151;cursor:pointer">
+                  📁 File / PDF
+                </button>
+              </div>
+            </div>
+          </div>`;
+        }).join("");
+      const countEl=document.getElementById("searchCount");
+      if(countEl){
+        if(q){countEl.textContent=vis.length+" result"+(vis.length!==1?"s":"")+" for \""+q+"\"";countEl.style.display="block";}
+        else countEl.style.display="none";
+      }
+    }
+  }
+}
+function esc(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+// ─── BOOT ────────────────────────────────────────────────────────────────────
+state.cases = loadCases();
+sortCases();
+try{ state.apiKey = localStorage.getItem("gi-wrvu-apikey")||""; }catch(e){}
+try{ state.sheetsUrl = localStorage.getItem("gi-wrvu-sheetsurl")||""; }catch(e){}
+window.saveApiKey=saveApiKey;
+render();
+</script>
+</body>
+</html>
